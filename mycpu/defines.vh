@@ -24,9 +24,11 @@
 
 // ALU op
 `define ALU_ADD    5'b00000
+`define ALU_SUB    5'b00010 
 
 // 指令译码相关
 `define FR5_ADD  5'b00000
+`define FR5_SUB  5'b00010 
 
 // 源操作数2的选择：选择rk或rd
 `define R2_RK  1'b1

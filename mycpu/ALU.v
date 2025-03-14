@@ -13,6 +13,7 @@ module ALU (
 always @(*) begin
     case (alu_op)
         `ALU_ADD: C = A + B;
+        `ALU_SUB: C = A - B;
         default : C = A + B;
     endcase
 end

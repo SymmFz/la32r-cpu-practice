@@ -12,7 +12,7 @@ module EXT (
 always @(*) begin
     case (ext_op)
         `EXT_20: ext = {din[24:5],12'h000};
-        `EXT_12: ext = {{20{din[21]}}, din[21:10]};
+        `EXT_12: ext = {{20{din[21]}}, din[21:10]};     // 某种符号拓展
         default: ext = {6'h0, din};
     endcase
 end

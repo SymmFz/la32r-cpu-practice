@@ -45,8 +45,10 @@ always @(*) begin
         3'b000: begin
             if (!din[10]) begin
                 if (!din[7]) begin
+                    // * 所有的 3R 类型指令
                     case (din[4:0])
                         `FR5_ADD: alu_op = `ALU_ADD;
+                        `FR5_SUB: alu_op = `ALU_SUB;
                         default : alu_op = `ALU_ADD;
                     endcase
                 end else
@@ -61,8 +63,8 @@ end
 always @(*) begin
     case (din[15:13])
         3'b010 : begin
-            if (!din[9]) rf_we = 1'b1;
-            else         rf_we = 1'b0;
+            if (!din[9]) rf_we = 1'b1;  // load 指令：ld.b ld.bu ld.h ld.hu ld.w            
+            else         rf_we = 1'b0;  // store 指令：st.b st.h st.w
         end
         default: rf_we = 1'b1;
     endcase
