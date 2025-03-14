@@ -1,4 +1,6 @@
-icarus/**
-netlist/**
-doc/**
+icarus/
+netlist/
+doc/
 a.out
+xilinx_ip/
+open-la500-master/IP/
