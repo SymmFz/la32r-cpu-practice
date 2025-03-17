@@ -63,6 +63,7 @@ wire [31:0] inst = suspend_restore ? ex_inst_r : ex_inst;
 wire        if_valid;           // IF阶段有效信号（有效表示当前有指令正处于IF阶段）
 reg         ldst_suspend;       // 执行访存指令时的流水线暂停信号
 reg         ldst_unalign;       // 访存指令的访存地址是否满足对齐条件
+wire        load_use;
 
 wire [31:0] if_pc;              // IF阶段的PC值
 wire [31:0] if_npc;             // IF阶段的下一条指令PC值
@@ -156,7 +157,7 @@ reg  [31:0] wb_wd;              // WB阶段的写回数据
 PC u_PC(
     .cpu_clk        (cpu_clk),
     .cpu_rstn       (cpu_rstn),
-    .suspend        (ldst_suspend),     // 流水线暂停信号
+    .suspend        (load_use | ldst_suspend),      // 流水线暂停信号
     .din            (if_npc),           // 下一条指令地址
     .pc             (if_pc),            // 当前PC值
     .valid          (if_valid),         // IF阶段有效信号
@@ -184,7 +185,7 @@ NPC u_NPC(
 IF_ID u_IF_ID(
     .cpu_clk    (cpu_clk),
     .cpu_rstn   (cpu_rstn),
-    .suspend    (ldst_suspend),         // 执行访存指令时暂停流水线
+    .suspend    (load_use | ldst_suspend),      // 执行访存指令时暂停流水线
     .valid_in   (if_valid),
 
     .pc_in      (if_pc),
@@ -246,7 +247,7 @@ ID_EX u_ID_EX(
     .cpu_clk        (cpu_clk),
     .cpu_rstn       (cpu_rstn),
     .suspend        (ldst_suspend),
-    .valid_in       (id_valid),
+    .valid_in       (id_valid & !load_use),     // ID和EX阶段发生Load-Use冒险时，下一拍清空EX阶段指令
 
     .wR_in          (id_wR),
     .pc_in          (id_pc),
@@ -256,7 +257,7 @@ ID_EX u_ID_EX(
     .ext_in         (id_ext),
 
     .npc_op_in      (id_npc_op),
-    .rf_we_in       (id_rf_we & id_valid),  // 若ID阶段被置为无效，清除寄存器写使能
+    .rf_we_in       (id_rf_we & id_valid & !load_use),  // 若ID阶段被置为无效，清除寄存器写使能
     .wd_sel_in      (id_wd_sel),
     .alu_op_in      (id_alu_op),
     .alua_sel_in    (id_alua_sel),
@@ -435,6 +436,7 @@ data_forward u_DF(
 
     .ex_sel_ram     (ex_sel_ram),
     .suspend_finish (!ldst_suspend),
+    .load_use       (load_use),
 
     .fd_rD1         (fd_rD1),
     .fd_rD1_sel     (fd_rD1_sel),
