@@ -11,9 +11,9 @@
 `define IMPL_OR         1
 `define IMPL_XOR        1
 `define IMPL_NOR        1
-`define IMPL_SLLI_W     0
-`define IMPL_SRLI_W     0
-`define IMPL_SRAI_W     0
+`define IMPL_SLLI_W     1
+`define IMPL_SRLI_W     1
+`define IMPL_SRAI_W     1
 `define IMPL_LD_W       0 //LD
 `define IMPL_ST_W       0 //ST
 `define IMPL_BEQ        0 //B

@@ -24,6 +24,17 @@ assign npc_op = `NPC_PC4;
 always @(*) begin
     case (din[15:13])
         3'b001 : ext_op=`EXT_20;
+        3'b000 : begin
+            if (!din[10]) begin
+                if (!din[7]) begin          // 匹配到所有 3R 类型的指令
+                    ext_op = `EXT_NONE;
+                end else begin              // 匹配到所有 2RI5 类型的指令
+                    ext_op = `EXT_5;
+                end
+            end else begin                  // 匹配除 load/store 指令外的所有 1RI20 类型指令
+                ext_op = `EXT_NONE;         // TODO: 占位，等待修正
+            end
+        end
         default: ext_op=`EXT_NONE;
     endcase
 end
@@ -60,8 +71,15 @@ always @(*) begin
                         `FR5_SLTU:alu_op = `ALU_SLTU;
                         default : alu_op = `ALU_ADD;
                     endcase
-                end else
-                    alu_op = `ALU_ADD;
+                end else begin
+                    // * 选中所有 2RI5 型指令的情况
+                    case (din[4:0])
+                        `FR5_SLLI: alu_op = `ALU_SLL;
+                        `FR5_SRLI: alu_op = `ALU_SRL;
+                        `FR5_SRAI: alu_op = `ALU_SRA;
+                        default:   alu_op = `ALU_ADD;
+                    endcase
+                end
             end else
                 alu_op = `ALU_ADD;
         end
@@ -72,8 +90,8 @@ end
 always @(*) begin
     case (din[15:13])
         3'b010 : begin
-            if (!din[9]) rf_we = 1'b1;  // load 指令：ld.b ld.bu ld.h ld.hu ld.w            
-            else         rf_we = 1'b0;  // store 指令：st.b st.h st.w
+            if (!din[9]) rf_we = 1'b1;  // 匹配到所有 load 指令：ld.b ld.bu ld.h ld.hu ld.w            
+            else         rf_we = 1'b0;  // 匹配到所有 store 指令：st.b st.h st.w
         end
         default: rf_we = 1'b1;
     endcase
@@ -108,7 +126,18 @@ end
 
 always @(*) begin
     case (din[15:12])
-        4'b0000: rR2_re=1'b1;
+        4'b0000: begin
+            if (!din[10]) begin
+                if (!din[7]) begin  // 匹配到所有 3R 类型指令
+                    rR2_re=1'b1;
+                end else begin      // 匹配到所有 2RI5 类型指令
+                    rR2_re=1'b0;
+                end
+            end else begin
+                rR2_re = 1'b0;      // 匹配除 load/store 指令外的所有 1RI20 类型指令
+            end
+        end
+        
         default: rR2_re=1'b0;
     endcase
 end
@@ -117,7 +146,18 @@ assign alua_sel = din[15:11] == 5'b00111 ? `ALUA_PC : `ALUA_R1;
 
 always @(*) begin
     case (din[15:13])
-        3'b000 : alub_sel = `ALUB_R2;
+        3'b000 : begin
+            if (!din[10]) begin
+                if (!din[7]) begin          // 匹配到所有 3R 类型指令
+                    alub_sel = `ALUB_R2;
+                end else begin              // 匹配到所有 2RI5 类型指令
+                    alub_sel = `ALUB_EXT;
+                end
+            end else begin
+                alub_sel = `ALUB_EXT;       // 匹配除 load/store 指令外的所有 1RI20 类型指令
+            end
+        end
+        
         3'b001 : alub_sel = `ALUB_EXT;
         3'b010 : alub_sel = `ALUB_EXT;
         default: alub_sel = `ALUB_R2;
