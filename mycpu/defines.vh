@@ -24,11 +24,31 @@
 
 // ALU op
 `define ALU_ADD    5'b00000
-`define ALU_SUB    5'b00010 
+`define ALU_SUB    5'b00010
+`define ALU_AND    5'b01001
+`define ALU_OR     5'b01010
+`define ALU_XOR    5'b01011
+`define ALU_NOR    5'b01000
+`define ALU_SLL    5'b01110
+`define ALU_SRL    5'b01111
+`define ALU_SRA    5'b10000
+`define ALU_SLT    5'b00100
+`define ALU_SLTU   5'b00101 
+
 
 // 指令译码相关
 `define FR5_ADD  5'b00000
-`define FR5_SUB  5'b00010 
+`define FR5_SUB  5'b00010
+`define FR5_AND  5'b01001
+`define FR5_OR   5'b01010
+`define FR5_XOR  5'b01011
+`define FR5_NOR  5'b01000
+`define FR5_SLL  5'b01110
+`define FR5_SRL  5'b01111
+`define FR5_SRA  5'b10000
+`define FR5_SLT  5'b00100
+`define FR5_SLTU 5'b00101 
+
 
 // 源操作数2的选择：选择rk或rd
 `define R2_RK  1'b1

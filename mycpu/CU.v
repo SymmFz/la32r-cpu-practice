@@ -45,10 +45,19 @@ always @(*) begin
         3'b000: begin
             if (!din[10]) begin
                 if (!din[7]) begin
-                    // * 所有的 3R 类型指令
+                    // * 选中所有的 3R 类型指令的情况
                     case (din[4:0])
                         `FR5_ADD: alu_op = `ALU_ADD;
                         `FR5_SUB: alu_op = `ALU_SUB;
+                        `FR5_AND: alu_op = `ALU_AND;
+                        `FR5_OR:  alu_op = `ALU_OR;
+                        `FR5_XOR: alu_op = `ALU_XOR;
+                        `FR5_NOR: alu_op = `ALU_NOR;
+                        `FR5_SLL: alu_op = `ALU_SLL;
+                        `FR5_SRL: alu_op = `ALU_SRL;
+                        `FR5_SRA: alu_op = `ALU_SRA;
+                        `FR5_SLT: alu_op = `ALU_SLT;
+                        `FR5_SLTU:alu_op = `ALU_SLTU;
                         default : alu_op = `ALU_ADD;
                     endcase
                 end else

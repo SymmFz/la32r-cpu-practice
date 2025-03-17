@@ -14,6 +14,15 @@ always @(*) begin
     case (alu_op)
         `ALU_ADD: C = A + B;
         `ALU_SUB: C = A - B;
+        `ALU_AND: C = A & B;
+        `ALU_OR:  C = A | B;
+        `ALU_XOR: C = A ^ B;
+        `ALU_NOR: C = ~(A | B);
+        `ALU_SLL: C = A << B[4:0];
+        `ALU_SRL: C = A >> B[4:0];
+        `ALU_SRA: C = $signed(A) >>> B[4:0];
+        `ALU_SLT: C = $signed(A) < $signed(B);
+        `ALU_SLTU:C = A < B;
         default : C = A + B;
     endcase
 end
