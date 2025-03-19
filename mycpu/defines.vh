@@ -12,8 +12,9 @@
 
 // 立即数扩展op
 `define EXT_20   3'b110
-`define EXT_12   3'b111
-`define EXT_5    3'b101     // 2RI5型指令3个立即数移位指令的拓展op
+`define EXT_12   3'b010     // 2RI12型指令符号拓展
+`define EXT_12Z  3'b011     // 2RI12型指令零拓展
+`define EXT_5    3'b101     // 2RI5型指令3种立即数移位指令的拓展op
 `define EXT_NONE 3'b000
 
 // Load指令读数据后的扩展op
@@ -50,9 +51,19 @@
 `define FR5_SLT  5'b00100
 `define FR5_SLTU 5'b00101 
 
+// 2RI5
 `define FR5_SLLI 5'b00001
 `define FR5_SRLI 5'b01001
 `define FR5_SRAI 5'b10001
+
+// 2RI12
+`define FR3_ADDI    3'b010 
+`define FR3_ANDI    3'b101 
+`define FR3_ORI     3'b110 
+`define FR3_XORI    3'b111 
+`define FR3_SLTI    3'b000 
+`define FR3_SLTUI   3'b001 
+
 
 // 源操作数2的选择：选择rk或rd
 `define R2_RK  1'b1

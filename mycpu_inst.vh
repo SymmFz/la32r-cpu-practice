@@ -3,7 +3,7 @@
 
 `define IMPL_LU12I_W    0
 `define IMPL_ADD_W      1
-`define IMPL_ADDI_W     0
+`define IMPL_ADDI_W     1
 `define IMPL_SUB_W      1
 `define IMPL_SLT        1
 `define IMPL_SLTU       1
@@ -22,11 +22,11 @@
 `define IMPL_JIRL       0 //J
 `define IMPL_B          0 //J
 `define IMPL_PCADDU12I  1
-`define IMPL_SLTI       0
-`define IMPL_SLTUI      0
-`define IMPL_ANDI       0
-`define IMPL_ORI        0
-`define IMPL_XORI       0
+`define IMPL_SLTI       1
+`define IMPL_SLTUI      1
+`define IMPL_ANDI       1
+`define IMPL_ORI        1
+`define IMPL_XORI       1
 `define IMPL_SLL_W      1
 `define IMPL_SRA_W      1
 `define IMPL_SRL_W      1

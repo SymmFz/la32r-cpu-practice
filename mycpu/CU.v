@@ -31,8 +31,16 @@ always @(*) begin
                 end else begin              // 匹配到所有 2RI5 类型的指令
                     ext_op = `EXT_5;
                 end
-            end else begin                  // 匹配除 load/store 指令外的所有 1RI20 类型指令
-                ext_op = `EXT_NONE;         // TODO: 占位，等待修正
+            end else begin                  // 匹配除 load/store 指令外的所有 2RI12 类型指令
+                case (din[9:7])
+                    `FR3_ADDI:   ext_op = `EXT_12;
+                    `FR3_ANDI:   ext_op = `EXT_12Z;
+                    `FR3_ORI :   ext_op = `EXT_12Z;
+                    `FR3_XORI:   ext_op = `EXT_12Z;
+                    `FR3_SLTI:   ext_op = `EXT_12;
+                    `FR3_SLTUI:  ext_op = `EXT_12;
+                    default:     ext_op = `EXT_NONE;
+                endcase
             end
         end
         default: ext_op=`EXT_NONE;
@@ -80,8 +88,17 @@ always @(*) begin
                         default:   alu_op = `ALU_ADD;
                     endcase
                 end
-            end else
-                alu_op = `ALU_ADD;
+            end else begin              // 匹配除 load/store 指令外的所有 2RI12 类型指令
+                case (din[9:7])
+                    `FR3_ADDI:   alu_op = `ALU_ADD;
+                    `FR3_ANDI:   alu_op = `ALU_AND;
+                    `FR3_ORI :   alu_op = `ALU_OR;
+                    `FR3_XORI:   alu_op = `ALU_XOR;
+                    `FR3_SLTI:   alu_op = `ALU_SLT;
+                    `FR3_SLTUI:  alu_op = `ALU_SLTU;
+                    default:     alu_op = `ALU_ADD;
+                endcase
+            end
         end
         default: alu_op=`ALU_ADD;
     endcase
@@ -134,7 +151,7 @@ always @(*) begin
                     rR2_re=1'b0;
                 end
             end else begin
-                rR2_re = 1'b0;      // 匹配除 load/store 指令外的所有 1RI20 类型指令
+                rR2_re = 1'b0;      // 匹配除 load/store 指令外的所有 2RI12 类型指令
             end
         end
         
@@ -154,7 +171,7 @@ always @(*) begin
                     alub_sel = `ALUB_EXT;
                 end
             end else begin
-                alub_sel = `ALUB_EXT;       // 匹配除 load/store 指令外的所有 1RI20 类型指令
+                alub_sel = `ALUB_EXT;       // 匹配除 load/store 指令外的所有 2RI12 类型指令
             end
         end
         
