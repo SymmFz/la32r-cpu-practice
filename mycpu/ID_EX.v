@@ -19,7 +19,7 @@ module ID_EX (
     input  wire         rf_we_in,
     input  wire[1:0]    wd_sel_in,
     input  wire[4:0]    alu_op_in,
-    input  wire         alua_sel_in,
+    input  wire[1:0]    alua_sel_in,
     input  wire         alub_sel_in,
     input  wire[3:0]    ram_we_in,
     input  wire[2:0]    ram_ext_op_in,
@@ -36,7 +36,7 @@ module ID_EX (
     output reg          rf_we_out,
     output reg [1:0]    wd_sel_out,
     output reg [4:0]    alu_op_out,
-    output reg          alua_sel_out,
+    output reg [1:0]    alua_sel_out,
     output reg          alub_sel_out,
     output reg [3:0]    ram_we_out,
     output reg [2:0]    ram_ext_op_out

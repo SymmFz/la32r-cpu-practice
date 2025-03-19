@@ -1,7 +1,7 @@
 `ifndef MYCPU_INST_H
 `define MYCPU_INST_H
 
-`define IMPL_LU12I_W    0
+`define IMPL_LU12I_W    1
 `define IMPL_ADD_W      1
 `define IMPL_ADDI_W     1
 `define IMPL_SUB_W      1

@@ -86,7 +86,7 @@ wire        id_wr_sel;          // ID阶段的目的寄存器选择信号（选�
 wire [ 1:0] id_wd_sel;          // ID阶段的写回数据选择（选择ALU执行结果写回，或选择访存数据写回，etc.）
 wire        id_rR1_re;          // ID阶段的源寄存器1读标志信号（有效时表示指令需要从源寄存器1读取操作数）
 wire        id_rR2_re;          // ID阶段的源寄存器2读标志信号（有效时表示指令需要从源寄存器2读取操作数）
-wire        id_alua_sel;        // ID阶段的ALU操作数A选择信号（选择源寄存器1的值或PC）
+wire [ 1:0] id_alua_sel;        // ID阶段的ALU操作数A选择信号（选择源寄存器1的值或PC）
 wire        id_alub_sel;        // ID阶段的ALU操作数B选择信号（选择源寄存器2的值或扩展后的立即数）
 
 wire [31:0] id_rD1;             // ID阶段的源寄存器1的值
@@ -111,7 +111,7 @@ wire [ 4:0] ex_alu_op;          // EX阶段的alu_op，用于控制ALU运算方�
 wire        ex_rf_we;           // EX阶段的寄存器写使能（指令需要写回时rf_we为1）
 wire [ 3:0] ex_ram_we;          // EX阶段的主存写使能信号（针对store指令）
 wire [ 1:0] ex_wd_sel;          // EX阶段的写回数据选择（选择ALU执行结果写回，或选择访存数据写回，etc.）
-wire        ex_alua_sel;        // EX阶段的ALU操作数A选择信号（选择源寄存器1的值或PC）
+wire [ 1:0] ex_alua_sel;        // EX阶段的ALU操作数A选择信号（选择源寄存器1的值或PC）
 wire        ex_alub_sel;        // EX阶段的ALU操作数B选择信号（选择源寄存器2的值或扩展后的立即数）
 
 wire [ 4:0] ex_wR;              // EX阶段的目的寄存器
@@ -121,7 +121,17 @@ wire [31:0] ex_pc;              // EX阶段的PC值
 wire [31:0] ex_pc4;             // EX阶段的PC值+4
 wire [31:0] ex_ext;             // EX阶段的立即数
 
-wire [31:0] ex_alu_A = ex_alua_sel ? ex_rD1 : ex_pc;    // EX阶段的ALU操作数A
+// EX阶段的ALU操作数A
+reg [31:0] ex_alu_A;
+always @(*) begin
+    case (ex_alua_sel)
+        `ALUA_R1:   ex_alu_A = ex_rD1;
+        `ALUA_PC:   ex_alu_A = ex_pc;
+        `ALUA_ZERO: ex_alu_A = 32'h00000000;
+        default:    ex_alu_A = 32'h12345678;
+    endcase
+end
+// wire [31:0] ex_alu_A = ex_alua_sel ? ex_rD1 : ex_pc;    
 wire [31:0] ex_alu_B = ex_alub_sel ? ex_rD2 : ex_ext;   // EX阶段的ALU操作数B
 wire [31:0] ex_alu_C;                                   // EX阶段的ALU运算结果
 

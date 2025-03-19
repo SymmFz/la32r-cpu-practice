@@ -15,7 +15,7 @@ module CU (
     output reg  [ 1:0]  wd_sel,         // 控制写回数据源
     output reg          rR1_re,         // 指令是否读取rR1，用于检测数据冒险
     output reg          rR2_re,         // 指令是否读取rR2，用于检测数据冒险
-    output wire         alua_sel,       // 选择ALU操作数A的来源
+    output reg  [ 1:0]  alua_sel,       // 选择ALU操作数A的来源
     output reg          alub_sel        // 选择ALU操作数B的来源
 );
 
@@ -100,6 +100,13 @@ always @(*) begin
                 endcase
             end
         end
+        3'b001: begin                   // 匹配所有 1RI20 型指令
+            if (!din[12]) begin         // 匹配 lu12i.w 指令
+                alu_op = `ALU_OR;
+            end else begin              // 匹配 pcaddu12i 指令
+                alu_op = `ALU_ADD;
+            end
+        end
         default: alu_op=`ALU_ADD;
     endcase
 end
@@ -159,7 +166,14 @@ always @(*) begin
     endcase
 end
 
-assign alua_sel = din[15:11] == 5'b00111 ? `ALUA_PC : `ALUA_R1;
+always @(*) begin
+    case (din[15:11])
+        5'b00111: alua_sel = `ALUA_PC;
+        5'b00101: alua_sel = `ALUA_ZERO;
+        default:  alua_sel = `ALUA_R1;
+    endcase
+end
+
 
 always @(*) begin
     case (din[15:13])

@@ -77,9 +77,10 @@
 `define WD_ALU  2'b11
 `define WD_RAM  2'b01
 
-// ALU操作数A的选择：选择源寄存器1或PC值
-`define ALUA_R1  1'b1
-`define ALUA_PC  1'b0
+// ALU操作数A的选择：选择源寄存器1或PC值或常数0
+`define ALUA_R1     2'b01
+`define ALUA_PC     2'b00
+`define ALUA_ZERO   2'b10
 
 // ALU操作数B的选择：选择源寄存器2或立即数
 `define ALUB_R2  1'b1
