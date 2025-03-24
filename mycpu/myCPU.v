@@ -303,7 +303,7 @@ ALU u_ALU(
 always @(*) begin
     // 根据选择信号，在EX阶段选择相应的数据用于前递
     case (ex_wd_sel)
-        `WD_RAM: ex_wd = 32'h0;
+        `WD_RAM: ex_wd = 32'h0;     // ? 需要核实
         `WD_ALU: ex_wd = ex_alu_C;
         default: ex_wd = 32'h12345678;
     endcase
@@ -313,7 +313,8 @@ always @(*) begin
         default:
             case (ex_ram_ext_op)
                 `RAM_EXT_H : ldst_unalign = (ex_alu_C[1:0] != 2'h0) & (ex_alu_C[1:0] != 2'h2);
-                default    : ldst_unalign = 1'b0;
+                `RAM_EXT_W : ldst_unalign = (ex_alu_C[1:0] != 2'b00);
+                default    : ldst_unalign = 1'b0;   // ld.b 也属于此类
             endcase
     endcase
 end

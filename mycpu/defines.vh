@@ -22,9 +22,13 @@
 `define RAM_EXT_BU 3'b110
 `define RAM_EXT_H  3'b001
 `define RAM_EXT_HU 3'b101
+`define RAM_EXT_W  3'b111 
 `define RAM_EXT_N  3'b000
 
 // Store指令写数据op
+`define RAM_WE_B 4'b0001
+`define RAM_WE_H 4'b0010
+`define RAM_WE_W 4'b0100  
 `define RAM_WE_N 4'b0000
 
 // ALU op

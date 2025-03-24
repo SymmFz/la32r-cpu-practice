@@ -37,9 +37,31 @@ always @(posedge clk or negedge rstn) begin
         if (send_ldst_req & (mem_wd_sel == `WD_RAM)) begin
             
             da_addr <= {mem_ram_addr[31:2], 2'h0};          // 访存地址按字对齐
+            da_wdata<= mem_ram_wdata;                       // ? 有待核查
             
             // 通过mem_ram_we判断指令是store还是load，如果是store，具体是哪一条store
             case (mem_ram_we)
+                `RAM_WE_B: begin
+                    case (offset)
+                        2'b00:  da_wen <= 4'b0001;
+                        2'b01:  da_wen <= 4'b0010;
+                        2'b10:  da_wen <= 4'b0100;
+                        2'b11:  da_wen <= 4'b1000;
+                        default:da_wen <= 4'b0000;
+                    endcase
+                end
+                `RAM_WE_H: begin
+                    case (offset)
+                        2'b00:  da_wen <= 4'b0011;
+                        2'b10:  da_wen <= 4'b1100;
+                        default:da_wen <= 4'b0000;
+                    endcase
+                end
+                `RAM_WE_W: begin
+                    case (offset)
+                        2'b00:  da_wen <= 4'b1111;
+                        default:da_wen <= 4'b0000;
+                end
                 default: begin              // load 类指令
                     // 通过mem_ram_ext_op判断load指令具体是哪一条load
                     case (mem_ram_ext_op)
