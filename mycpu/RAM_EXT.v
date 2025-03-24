@@ -23,7 +23,10 @@ end
 // 根据ram_ext_op对读取的数据作不同的扩展操作（主要针对lb、lbu、lh、lhu指令）
 always @(*) begin
     case (ram_ext_op)
+        `RAM_EXT_B: ext_out = {{24{real_din[7]}}, real_din[7:0]};
+        `RAM_EXT_BU:ext_out = {{24{1'b0}}       , real_din[7:0]};
         `RAM_EXT_H: ext_out = {{16{real_din[15]}}, real_din[15:0]};
+        `RAM_EXT_HU:ext_out = {{16{1'b0}}, real_din[15:0]};
         default   : ext_out = real_din;
     endcase
 end

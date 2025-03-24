@@ -40,10 +40,15 @@ always @(posedge clk or negedge rstn) begin
             
             // 通过mem_ram_we判断指令是store还是load，如果是store，具体是哪一条store
             case (mem_ram_we)
-                default: begin
+                default: begin              // load 类指令
                     // 通过mem_ram_ext_op判断load指令具体是哪一条load
                     case (mem_ram_ext_op)
+                        `RAM_EXT_B : da_ren <= 4'hF;
+                        `RAM_EXT_BU: da_ren <= 4'hF;
                         `RAM_EXT_H :                        // ld.h
+                            if (offset == 2'h0 || offset == 2'h2)
+                                da_ren <= 4'hF;
+                        `RAM_EXT_HU:                        // ld.h
                             if (offset == 2'h0 || offset == 2'h2)
                                 da_ren <= 4'hF;
                         default:                            // ld.w

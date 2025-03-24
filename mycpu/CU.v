@@ -23,7 +23,7 @@ assign npc_op = `NPC_PC4;
 
 always @(*) begin
     case (din[15:13])
-        3'b001 : ext_op=`EXT_20;
+        3'b001 : ext_op=`EXT_20;            // 匹配四头 1RI20 类型的指令
         3'b000 : begin
             if (!din[10]) begin
                 if (!din[7]) begin          // 匹配到所有 3R 类型的指令
@@ -43,16 +43,20 @@ always @(*) begin
                 endcase
             end
         end
+        3'b010 : ext_op = `EXT_12           // 匹配所有访存指令
         default: ext_op=`EXT_NONE;
     endcase
 end
 
 always @(*) begin
     case (din[15:13])
-        3'b010: begin
+        3'b010: begin       // 锁定所有访存类指令
             case (din[10:7])
-                4'b0001: ram_ext_op = `RAM_EXT_H;
-                default: ram_ext_op = `RAM_EXT_N;
+                4'b0000: ram_ext_op = `RAM_EXT_B;       // ld.b
+                4'b1000: ram_ext_op = `RAM_EXT_BU;      // ld.bu
+                4'b0001: ram_ext_op = `RAM_EXT_H;       // ld.h
+                4'b1001: ram_ext_op = `RAM_EXT_HU;      // ld.hu
+                default: ram_ext_op = `RAM_EXT_N;       // ld.w & store inst
             endcase
         end
         default: ram_ext_op = `RAM_EXT_N;
@@ -135,7 +139,7 @@ assign wr_sel = `WR_RD;     // 选择rd为目的寄存器
 always @(*) begin
     case (din[15:13])
         3'b000 : wd_sel = `WD_ALU;
-        3'b010 : wd_sel = `WD_RAM;
+        3'b010 : wd_sel = `WD_RAM;          // 匹配所有访存指令
         3'b001 : wd_sel = `WD_ALU;
         default: wd_sel = `WD_ALU;
     endcase
@@ -190,7 +194,7 @@ always @(*) begin
         end
         
         3'b001 : alub_sel = `ALUB_EXT;
-        3'b010 : alub_sel = `ALUB_EXT;
+        3'b010 : alub_sel = `ALUB_EXT;      // 匹配所有访存指令
         default: alub_sel = `ALUB_R2;
     endcase
 end

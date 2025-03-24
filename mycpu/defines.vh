@@ -18,7 +18,10 @@
 `define EXT_NONE 3'b000
 
 // Load指令读数据后的扩展op
+`define RAM_EXT_B  3'b010
+`define RAM_EXT_BU 3'b110
 `define RAM_EXT_H  3'b001
+`define RAM_EXT_HU 3'b101
 `define RAM_EXT_N  3'b000
 
 // Store指令写数据op
