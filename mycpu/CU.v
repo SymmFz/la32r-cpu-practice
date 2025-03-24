@@ -127,13 +127,19 @@ end
 
 always @(*) begin
     case (din[15:13])
+        3'b010: begin
+            case(din[8:7])
+                2'b00:  ram_we = `RAM_WE_B;
+                2'b01:  ram_we = `RAM_WE_H;
+                2'b10:  ram_we = `RAM_WE_W;
+        end
         default: ram_we = `RAM_WE_N;
     endcase
 end
 
 // assign r2_sel = XXX ? `R2_RK : `R2_RD;
 // assign wr_sel = XXX ? `WR_Rr1: `WR_RD;
-assign r2_sel = `R2_RK;     // 选择rk为源寄存器2
+assign r2_sel = (din[15:13] == 3'b010 && din[9]) ? `R2_RD : `R2_RK;     // 选择rk为源寄存器2
 assign wr_sel = `WR_RD;     // 选择rd为目的寄存器
 
 always @(*) begin
@@ -164,6 +170,10 @@ always @(*) begin
             end else begin
                 rR2_re = 1'b0;      // 匹配除 load/store 指令外的所有 2RI12 类型指令
             end
+        end
+        4'b0101: begin                    // store/load
+            if (din[9]) rR2_re = 1'b1;    // store
+            else        rR2_re = 1'b0;    // load
         end
         
         default: rR2_re=1'b0;

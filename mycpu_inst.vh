@@ -14,8 +14,8 @@
 `define IMPL_SLLI_W     1
 `define IMPL_SRLI_W     1
 `define IMPL_SRAI_W     1
-`define IMPL_LD_W       0 //LD
-`define IMPL_ST_W       0 //ST
+`define IMPL_LD_W       1 //LD
+`define IMPL_ST_W       1 //ST
 `define IMPL_BEQ        0 //B
 `define IMPL_BNE        0 //B
 `define IMPL_BL         0 //J
@@ -41,12 +41,12 @@
 `define IMPL_BGE        0 //B
 `define IMPL_BLTU       0 //B
 `define IMPL_BGEU       0 //B
-`define IMPL_LD_B       0 //LD
-`define IMPL_LD_H       0 //LD
-`define IMPL_LD_BU      0 //LD
-`define IMPL_LD_HU      0 //LD
-`define IMPL_ST_B       0 //ST
-`define IMPL_ST_H       0 //ST
+`define IMPL_LD_B       1 //LD
+`define IMPL_LD_H       1 //LD
+`define IMPL_LD_BU      1 //LD
+`define IMPL_LD_HU      1 //LD
+`define IMPL_ST_B       1 //ST
+`define IMPL_ST_H       1 //ST
 `define IMPL_EX_SYSCALL     0
 `define IMPL_EX_BREAK       0
 `define IMPL_EX_TI          0
