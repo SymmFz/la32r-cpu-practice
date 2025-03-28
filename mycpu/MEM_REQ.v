@@ -61,6 +61,7 @@ always @(posedge clk or negedge rstn) begin
                     case (offset)
                         2'b00:  da_wen <= 4'b1111;
                         default:da_wen <= 4'b0000;
+                    endcase
                 end
                 default: begin              // load 类指令
                     // 通过mem_ram_ext_op判断load指令具体是哪一条load

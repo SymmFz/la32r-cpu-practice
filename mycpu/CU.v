@@ -43,7 +43,7 @@ always @(*) begin
                 endcase
             end
         end
-        3'b010 : ext_op = `EXT_12           // 匹配所有访存指令
+        3'b010 : ext_op = `EXT_12;          // 匹配所有访存指令
         default: ext_op=`EXT_NONE;
     endcase
 end
@@ -132,6 +132,7 @@ always @(*) begin
                 2'b00:  ram_we = `RAM_WE_B;
                 2'b01:  ram_we = `RAM_WE_H;
                 2'b10:  ram_we = `RAM_WE_W;
+            endcase
         end
         default: ram_we = `RAM_WE_N;
     endcase
