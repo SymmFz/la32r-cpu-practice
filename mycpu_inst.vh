@@ -16,7 +16,7 @@
 `define IMPL_SRAI_W     1
 `define IMPL_LD_W       0 //LD  // 访存指令已实现，暂时无法测试，置 0
 `define IMPL_ST_W       0 //ST  // 访存指令已实现，暂时无法测试，置 0
-`define IMPL_BEQ        0 //B
+`define IMPL_BEQ        1 //B
 `define IMPL_BNE        0 //B
 `define IMPL_BL         0 //J
 `define IMPL_JIRL       0 //J
@@ -37,7 +37,7 @@
 `define IMPL_MULH_WU    0
 `define IMPL_MOD_W      0
 `define IMPL_MOD_WU     0
-`define IMPL_BLT        0 //B
+`define IMPL_BLT        1 //B
 `define IMPL_BGE        0 //B
 `define IMPL_BLTU       0 //B
 `define IMPL_BGEU       0 //B

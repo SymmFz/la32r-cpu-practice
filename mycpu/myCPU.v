@@ -89,12 +89,16 @@ wire        id_rR2_re;          // ID阶段的源寄存器2读标志信号（有
 wire [ 1:0] id_alua_sel;        // ID阶段的ALU操作数A选择信号（选择源寄存器1的值或PC）
 wire        id_alub_sel;        // ID阶段的ALU操作数B选择信号（选择源寄存器2的值或扩展后的立即数）
 
+wire        id_is_br_jump;      // ID阶段是否是分支或跳转指令
+
 wire [31:0] id_rD1;             // ID阶段的源寄存器1的值
 wire [31:0] id_rD2;             // ID阶段的源寄存器2的值
 wire [31:0] id_ext;             // ID阶段的扩展后的立即数
 wire [ 4:0] id_rR1 = id_inst[9:5];                                  // 从指令码中解析出源寄存器1的编号
 wire [ 4:0] id_rR2 = id_r2_sel ? id_inst[14:10] : id_inst[4:0];     // 选择源寄存器2
 wire [ 4:0] id_wR  = id_wr_sel ? id_inst[ 4: 0] : 5'h1;             // 选择目的寄存器
+
+wire        id_jump_taken;      // ID阶段分支或跳转指令是否进行跳转
 
 wire [31:0] fd_rD1;             // 前递到ID阶段的源操作数1
 wire [31:0] fd_rD2;             // 前递到ID阶段的源操作数2
@@ -105,7 +109,6 @@ wire [31:0] id_real_rD2 = fd_rD2_sel ? fd_rD2 : id_rD2;     // ID阶段的源寄
 
 // EX stage signals
 wire        ex_valid;           // EX阶段有效信号（有效表示当前有指令正处于EX阶段）
-wire [ 1:0] ex_npc_op;          // EX阶段的npc_op，用于控制下一条指令PC值的生成
 wire [ 2:0] ex_ram_ext_op;      // EX阶段的读主存数据扩展op，用于控制主存读回数据的扩展方式（针对load指令）
 wire [ 4:0] ex_alu_op;          // EX阶段的alu_op，用于控制ALU运算方式
 wire        ex_rf_we;           // EX阶段的寄存器写使能（指令需要写回时rf_we为1）
@@ -166,7 +169,7 @@ reg  [31:0] wb_wd;              // WB阶段的写回数据
 // IF
 PC u_PC(
     .cpu_clk        (cpu_clk),
-    .cpu_rstn       (cpu_rstn),
+    .cpu_rstn       (cpu_rstn | (!id_jump_taken & id_is_br_jump & id_valid)),    // 分支指令跳转发生后（即静态预测错误），需要重置 PC
     .suspend        (load_use | ldst_suspend),      // 流水线暂停信号
     .din            (if_npc),           // 下一条指令地址
     .pc             (if_pc),            // 当前PC值
@@ -182,10 +185,13 @@ PC u_PC(
 );
 
 NPC u_NPC(
-    .npc_op     (ex_valid ? ex_npc_op : `NPC_PC4),  // 若EX阶段无效，则IF阶段默认顺序执行
-    .if_pc      (if_pc),
-    .pc4        (if_pc4),
-    .npc        (if_npc),
+    .npc_op             (id_valid ? id_npc_op : `NPC_PC4),  // 若EX阶段无效，则IF阶段默认顺序执行
+    .if_pc              (if_pc),
+    .id_pc              (id_pc),
+    .id_jump_taken      (id_valid ? id_jump_taken : 1'b0), // ID阶段是否是分支或跳转指令
+    .id_jump_offset_ext (id_ext),                          // ID阶段计算完成的分支、跳转指令的偏移量（扩展后的值）
+    .pc4                (if_pc4),
+    .npc                (if_npc),
 
     // inc_dev
     .jump_taken (jump_taken)
@@ -194,7 +200,7 @@ NPC u_NPC(
 // IF/ID
 IF_ID u_IF_ID(
     .cpu_clk    (cpu_clk),
-    .cpu_rstn   (cpu_rstn),
+    .cpu_rstn   (cpu_rstn | (!id_jump_taken & id_is_br_jump & id_valid)),   // 分支指令跳转发生后（即静态预测错误），需要重置 IF/ID 寄存器
     .suspend    (load_use | ldst_suspend),      // 执行访存指令时暂停流水线
     .valid_in   (if_valid),
 
@@ -210,20 +216,22 @@ IF_ID u_IF_ID(
 
 // ID
 CU u_CU(
-    .din        (id_inst[31:15]),
-    .npc_op     (id_npc_op),
-    .ext_op     (id_ext_op),
-    .ram_ext_op (id_ram_ext_op),
-    .alu_op     (id_alu_op),
-    .rf_we      (id_rf_we),
-    .ram_we     (id_ram_we),
-    .r2_sel     (id_r2_sel),
-    .wr_sel     (id_wr_sel),
-    .wd_sel     (id_wd_sel),
-    .rR1_re     (id_rR1_re),
-    .rR2_re     (id_rR2_re),
-    .alua_sel   (id_alua_sel),
-    .alub_sel   (id_alub_sel)
+    .din            (id_inst[31:15]),
+    .npc_op         (id_npc_op),
+    .ext_op         (id_ext_op),
+    .ram_ext_op     (id_ram_ext_op),
+    .alu_op         (id_alu_op),
+    .rf_we          (id_rf_we),
+    .ram_we         (id_ram_we),
+    .r2_sel         (id_r2_sel),
+    .wr_sel         (id_wr_sel),
+    .wd_sel         (id_wd_sel),
+    .rR1_re         (id_rR1_re),
+    .rR2_re         (id_rR2_re),
+    .alua_sel       (id_alua_sel),
+    .alub_sel       (id_alub_sel),
+    
+    .id_is_br_jump  (id_is_br_jump)
 );
 
 RF u_RF(
@@ -250,6 +258,14 @@ EXT u_EXT(
     .din    (id_inst[25:0]),            // 指令码中的立即数字段
     .ext_op (id_ext_op),                // 扩展方式
     .ext    (id_ext)                    // 扩展后的立即数
+);
+
+BR_JUMP_TAKEN u_BR_JUMP_TAKEN(
+    .inst       (id_inst),            // 指令码
+    .rd1        (id_rD1),             // 源寄存器1的值 
+    .rd2        (id_rD2),             // 源寄存器2的值
+
+    .jump_taken (id_jump_taken)       // ID阶段分支或跳转指令是否进行跳转
 );
 
 // ID/EX
@@ -283,7 +299,6 @@ ID_EX u_ID_EX(
     .rD2_out        (ex_rD2),
     .ext_out        (ex_ext),
 
-    .npc_op_out     (ex_npc_op),
     .rf_we_out      (ex_rf_we),
     .wd_sel_out     (ex_wd_sel),
     .alu_op_out     (ex_alu_op),

@@ -8,7 +8,8 @@
 `define PC_INIT_VAL     32'h1C000000
 
 // NPC op
-`define NPC_PC4 2'b00
+`define NPC_PC4  2'b00
+`define NPC_JUMP 2'b01
 
 // 立即数扩展op
 `define EXT_20   3'b110
@@ -16,6 +17,9 @@
 `define EXT_12Z  3'b011     // 2RI12型指令零拓展
 `define EXT_5    3'b101     // 2RI5型指令3种立即数移位指令的拓展op
 `define EXT_NONE 3'b000
+
+`define EXT_2RI16 3'b001     // 2RI16型指令符号拓展（分支、跳转 offset）
+`define EXT_I26   3'b100     // I26型指令符号拓展（分支、跳转 offset）
 
 // Load指令读数据后的扩展op
 `define RAM_EXT_B  3'b010

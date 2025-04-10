@@ -3,7 +3,7 @@
 `include "defines.vh"
 
 module CU (
-    input  wire [16:0]  din,            // 指令码的高17位
+    input  wire [16:0]  din,            // 指令码的高17位，下标从15开始
     output wire [ 1:0]  npc_op,         // 控制下一条指令的PC值
     output reg  [ 2:0]  ext_op,         // 控制立即数扩展方式
     output reg  [ 2:0]  ram_ext_op,     // 控制读主存数据的扩展方式（针对load指令）
@@ -16,36 +16,45 @@ module CU (
     output reg          rR1_re,         // 指令是否读取rR1，用于检测数据冒险
     output reg          rR2_re,         // 指令是否读取rR2，用于检测数据冒险
     output reg  [ 1:0]  alua_sel,       // 选择ALU操作数A的来源
-    output reg          alub_sel        // 选择ALU操作数B的来源
+    output reg          alub_sel,       // 选择ALU操作数B的来源
+
+    output wire         id_is_br_jump   // id 阶段是否是分支或跳转指令
 );
 
-assign npc_op = `NPC_PC4;
+assign id_is_br_jump = din[15];
+wire inst_is_b_bl = din[15:12] == 4'b1010;           // I26 型指令（b or bl）  
+assign npc_op = id_is_br_jump ? `NPC_JUMP : `NPC_PC4; // 选择顺序执行的下一条指令地址
 
 always @(*) begin
-    case (din[15:13])
-        3'b001 : ext_op=`EXT_20;            // 匹配四头 1RI20 类型的指令
-        3'b000 : begin
-            if (!din[10]) begin
-                if (!din[7]) begin          // 匹配到所有 3R 类型的指令
-                    ext_op = `EXT_NONE;
-                end else begin              // 匹配到所有 2RI5 类型的指令
-                    ext_op = `EXT_5;
+    if (id_is_br_jump) begin
+        ext_op = inst_is_b_bl ? `EXT_I26 : `EXT_2RI16; // 选择分支、跳转指令的立即数扩展方式
+    end
+    else begin
+        case (din[15:13])
+            3'b001 : ext_op=`EXT_20;            // 匹配四头 1RI20 类型的指令
+            3'b000 : begin
+                if (!din[10]) begin
+                    if (!din[7]) begin          // 匹配到所有 3R 类型的指令
+                        ext_op = `EXT_NONE;
+                    end else begin              // 匹配到所有 2RI5 类型的指令
+                        ext_op = `EXT_5;
+                    end
+                end else begin                  // 匹配除 load/store 指令外的所有 2RI12 类型指令
+                    case (din[9:7])
+                        `FR3_ADDI:   ext_op = `EXT_12;
+                        `FR3_ANDI:   ext_op = `EXT_12Z;
+                        `FR3_ORI :   ext_op = `EXT_12Z;
+                        `FR3_XORI:   ext_op = `EXT_12Z;
+                        `FR3_SLTI:   ext_op = `EXT_12;
+                        `FR3_SLTUI:  ext_op = `EXT_12;
+                        default:     ext_op = `EXT_NONE;
+                    endcase
                 end
-            end else begin                  // 匹配除 load/store 指令外的所有 2RI12 类型指令
-                case (din[9:7])
-                    `FR3_ADDI:   ext_op = `EXT_12;
-                    `FR3_ANDI:   ext_op = `EXT_12Z;
-                    `FR3_ORI :   ext_op = `EXT_12Z;
-                    `FR3_XORI:   ext_op = `EXT_12Z;
-                    `FR3_SLTI:   ext_op = `EXT_12;
-                    `FR3_SLTUI:  ext_op = `EXT_12;
-                    default:     ext_op = `EXT_NONE;
-                endcase
             end
-        end
-        3'b010 : ext_op = `EXT_12;          // 匹配所有访存指令
-        default: ext_op=`EXT_NONE;
-    endcase
+            3'b010 : ext_op = `EXT_12;          // 匹配所有访存指令
+            default: ext_op=`EXT_NONE;
+        endcase
+    end
 end
 
 always @(*) begin
@@ -121,7 +130,7 @@ always @(*) begin
             if (!din[9]) rf_we = 1'b1;  // 匹配到所有 load 指令：ld.b ld.bu ld.h ld.hu ld.w            
             else         rf_we = 1'b0;  // 匹配到所有 store 指令：st.b st.h st.w
         end
-        default: rf_we = 1'b1;
+        default: rf_we = id_is_br_jump ? 1'b0 : 1'b1;       // 分支、跳转指令不写回寄存器堆
     endcase
 end
 
@@ -140,7 +149,7 @@ end
 
 // assign r2_sel = XXX ? `R2_RK : `R2_RD;
 // assign wr_sel = XXX ? `WR_Rr1: `WR_RD;
-assign r2_sel = (din[15:13] == 3'b010 && din[9]) ? `R2_RD : `R2_RK;     // 选择rk为源寄存器2
+assign r2_sel = (din[15:13] == 3'b010 && din[9]) || id_is_br_jump ? `R2_RD : `R2_RK;     // 选择rk为源寄存器2，（store 或分支跳转指令）
 assign wr_sel = `WR_RD;     // 选择rd为目的寄存器
 
 always @(*) begin
@@ -160,25 +169,30 @@ always @(*) begin
 end
 
 always @(*) begin
-    case (din[15:12])
-        4'b0000: begin
-            if (!din[10]) begin
-                if (!din[7]) begin  // 匹配到所有 3R 类型指令
-                    rR2_re=1'b1;
-                end else begin      // 匹配到所有 2RI5 类型指令
-                    rR2_re=1'b0;
+    if (id_is_br_jump && !inst_is_b_bl) begin
+        rR2_re = 1'b1;
+    end
+    else begin
+        case (din[15:12])
+            4'b0000: begin
+                if (!din[10]) begin
+                    if (!din[7]) begin  // 匹配到所有 3R 类型指令
+                        rR2_re=1'b1;
+                    end else begin      // 匹配到所有 2RI5 类型指令
+                        rR2_re=1'b0;
+                    end
+                end else begin
+                    rR2_re = 1'b0;      // 匹配除 load/store 指令外的所有 2RI12 类型指令
                 end
-            end else begin
-                rR2_re = 1'b0;      // 匹配除 load/store 指令外的所有 2RI12 类型指令
             end
-        end
-        4'b0101: begin                    // store/load
-            if (din[9]) rR2_re = 1'b1;    // store
-            else        rR2_re = 1'b0;    // load
-        end
-        
-        default: rR2_re=1'b0;
-    endcase
+            4'b0101: begin                    // store/load
+                if (din[9]) rR2_re = 1'b1;    // store
+                else        rR2_re = 1'b0;    // load
+            end
+            
+            default: rR2_re=1'b0;
+        endcase
+    end
 end
 
 always @(*) begin

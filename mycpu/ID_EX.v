@@ -32,7 +32,6 @@ module ID_EX (
     output reg [31:0]   rD2_out,
     output reg [31:0]   ext_out,
 
-    output reg [1:0]    npc_op_out,
     output reg          rf_we_out,
     output reg [1:0]    wd_sel_out,
     output reg [4:0]    alu_op_out,
@@ -50,7 +49,6 @@ always @(posedge cpu_clk) begin
     rD1_out        <= !cpu_rstn ? 32'h0 : suspend ? rD1_out        : rD1_in;
     rD2_out        <= !cpu_rstn ? 32'h0 : suspend ? rD2_out        : rD2_in;
     ext_out        <= !cpu_rstn ? 32'h0 : suspend ? ext_out        : ext_in;
-    npc_op_out     <= !cpu_rstn ?  2'h0 : suspend ? npc_op_out     : npc_op_in;
     rf_we_out      <= !cpu_rstn ?  1'h0 : suspend ? rf_we_out      : rf_we_in;
     wd_sel_out     <= !cpu_rstn ?  2'h0 : suspend ? wd_sel_out     : wd_sel_in;
     alu_op_out     <= !cpu_rstn ?  4'h0 : suspend ? alu_op_out     : alu_op_in;
