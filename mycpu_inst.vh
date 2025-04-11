@@ -17,10 +17,10 @@
 `define IMPL_LD_W       0 //LD  // 访存指令已实现，暂时无法测试，置 0
 `define IMPL_ST_W       0 //ST  // 访存指令已实现，暂时无法测试，置 0
 `define IMPL_BEQ        1 //B
-`define IMPL_BNE        0 //B
-`define IMPL_BL         0 //J
-`define IMPL_JIRL       0 //J
-`define IMPL_B          0 //J
+`define IMPL_BNE        1 //B
+`define IMPL_BL         1 //J
+`define IMPL_JIRL       1 //J
+`define IMPL_B          1 //J
 `define IMPL_PCADDU12I  1
 `define IMPL_SLTI       1
 `define IMPL_SLTUI      1
@@ -30,25 +30,25 @@
 `define IMPL_SLL_W      1
 `define IMPL_SRA_W      1
 `define IMPL_SRL_W      1
-`define IMPL_DIV_W      0
-`define IMPL_DIV_WU     0
-`define IMPL_MUL_W      0
-`define IMPL_MULH_W     0
-`define IMPL_MULH_WU    0
-`define IMPL_MOD_W      0
-`define IMPL_MOD_WU     0
+`define IMPL_DIV_W      0 // TODO
+`define IMPL_DIV_WU     0 // TODO
+`define IMPL_MUL_W      0 // TODO
+`define IMPL_MULH_W     0 // TODO
+`define IMPL_MULH_WU    0 // TODO
+`define IMPL_MOD_W      0 // TODO
+`define IMPL_MOD_WU     0 // TODO
 `define IMPL_BLT        1 //B
-`define IMPL_BGE        0 //B
-`define IMPL_BLTU       0 //B
-`define IMPL_BGEU       0 //B
+`define IMPL_BGE        1 //B
+`define IMPL_BLTU       1 //B
+`define IMPL_BGEU       1 //B
 `define IMPL_LD_B       0 //LD  // 访存指令已实现，暂时无法测试，置 0
 `define IMPL_LD_H       0 //LD  // 访存指令已实现，暂时无法测试，置 0
 `define IMPL_LD_BU      0 //LD  // 访存指令已实现，暂时无法测试，置 0
 `define IMPL_LD_HU      0 //LD  // 访存指令已实现，暂时无法测试，置 0
 `define IMPL_ST_B       0 //ST  // 访存指令已实现，暂时无法测试，置 0
 `define IMPL_ST_H       0 //ST  // 访存指令已实现，暂时无法测试，置 0
-`define IMPL_EX_SYSCALL     0
-`define IMPL_EX_BREAK       0
+`define IMPL_EX_SYSCALL     0 // TODO
+`define IMPL_EX_BREAK       0 // TODO
 `define IMPL_EX_TI          0
 `define IMPL_EX_INE         0
 `define IMPL_EX_SOFT_INT    0

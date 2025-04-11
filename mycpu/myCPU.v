@@ -37,7 +37,6 @@ module myCPU (
     output wire [ 4:0]  debug_wb_reg,   // 写回阶段被写寄存器的寄存器号
     output wire [31:0]  debug_wb_value  // 写回阶段写入寄存器的数据值
 );
-
 /****** inc_dev ******/
 wire        jump_taken;
 assign      ex_finish = wb_valid;
@@ -188,6 +187,7 @@ NPC u_NPC(
     .npc_op             (id_valid ? id_npc_op : `NPC_PC4),  // 若EX阶段无效，则IF阶段默认顺序执行
     .if_pc              (if_pc),
     .id_pc              (id_pc),
+    .rj_data            (id_real_rD1),                     // 寄存器1的值（用于 jirl 指令的跳转）
     .id_jump_taken      (id_valid ? id_jump_taken : 1'b0), // ID阶段是否是分支或跳转指令
     .id_jump_offset_ext (id_ext),                          // ID阶段计算完成的分支、跳转指令的偏移量（扩展后的值）
     .pc4                (if_pc4),
@@ -261,7 +261,7 @@ EXT u_EXT(
 );
 
 BR_JUMP_TAKEN u_BR_JUMP_TAKEN(
-    .inst       (id_inst),            // 指令码
+    .din        (id_inst[31:26]),            // 指令码高 6 位
     .rd1        (id_rD1),             // 源寄存器1的值 
     .rd2        (id_rD2),             // 源寄存器2的值
 
@@ -320,6 +320,7 @@ always @(*) begin
     case (ex_wd_sel)
         `WD_RAM: ex_wd = 32'h0;     // ? 需要核实
         `WD_ALU: ex_wd = ex_alu_C;
+        `WD_PC4: ex_wd = ex_pc4;
         default: ex_wd = 32'h12345678;
     endcase
 
@@ -383,6 +384,7 @@ always @(*) begin
     case (mem_wd_sel)
         `WD_RAM: mem_wd = mem_ram_ext;
         `WD_ALU: mem_wd = mem_alu_C;
+        `WD_PC4: mem_wd = mem_pc4;
         default: mem_wd = 32'h87654321;
     endcase
 end
@@ -437,6 +439,7 @@ always @(*) begin
     case (wb_wd_sel)
         `WD_RAM: wb_wd = wb_ram_ext;
         `WD_ALU: wb_wd = wb_alu_C;
+        `WD_PC4: wb_wd = wb_pc4;
         default: wb_wd = 32'haabbccdd;
     endcase
 end

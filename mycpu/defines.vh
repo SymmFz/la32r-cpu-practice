@@ -8,8 +8,9 @@
 `define PC_INIT_VAL     32'h1C000000
 
 // NPC op
-`define NPC_PC4  2'b00
-`define NPC_JUMP 2'b01
+`define NPC_PC4       2'b00
+`define NPC_JUMP      2'b01
+`define NPC_JIRL_JUMP 2'b10 
 
 // 立即数扩展op
 `define EXT_20   3'b110
@@ -75,6 +76,19 @@
 `define FR3_SLTI    3'b000 
 `define FR3_SLTUI   3'b001 
 
+// 2RI16 分支或跳转
+`define FR5_BEQ     5'b10110
+`define FR5_BNE     5'b10111
+`define FR5_BLT     5'b11000 
+`define FR5_BLTU    5'b11010 
+`define FR5_BGE     5'b11001 
+`define FR5_BGEU    5'b11011 
+`define FR5_JIRL    5'b10011 
+
+// I26 分支或跳转
+`define FR5_B       5'b10100
+`define FR5_BL      5'b10101  
+
 
 // 源操作数2的选择：选择rk或rd
 `define R2_RK  1'b1
@@ -84,9 +98,10 @@
 `define WR_RD  1'b1
 `define WR_Rr1  1'b0
 
-// 写数据选择：选择将ALU数据或将读主存的数据写回寄存器堆
+// 写数据选择：选择将ALU数据或将读主存的数据或PC+4写回寄存器堆
 `define WD_ALU  2'b11
 `define WD_RAM  2'b01
+`define WD_PC4  2'b10 
 
 // ALU操作数A的选择：选择源寄存器1或PC值或常数0
 `define ALUA_R1     2'b01
