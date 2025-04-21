@@ -3,7 +3,7 @@
 `include "defines.vh"
 
 module NPC (
-    input  wire [31:0]  if_pc,              // 当前指令的PC值
+    // input  wire [31:0]  if_pc,              // 当前指令的PC值
     input  wire [31:0]  id_pc,              // id 阶段的 PC 值
     input  wire [31:0]  rj_data,            // 寄存器 1 的值（用于 jirl 指令的跳转）
     input  wire         id_jump_taken,      // id 阶段计算完成的跳转方向（是否跳转）
@@ -17,7 +17,7 @@ module NPC (
     output reg          jump_taken          // 跳转信号，表示是否发生了分支或跳转
 );
 
-assign pc4 = if_pc + 32'h4;
+assign pc4 = id_pc + 32'h4;
 wire [31:0] jump_target = id_pc + id_jump_offset_ext; // 计算分支、跳转指令的跳转目标地址
 wire [31:0] jirl_jump_target = rj_data + id_jump_offset_ext; // 计算 jirl 指令的跳转目标地址
 always @(*) begin
@@ -25,9 +25,9 @@ always @(*) begin
         `NPC_PC4:   // 如果npc_op为NPC_PC4，选择顺序执行的下一条指令地址
             npc = pc4;
         `NPC_JUMP:  // 如果npc_op为NPC_JUMP，选择跳转目标地址
-            npc = jump_target;
+            npc = id_jump_taken ? jump_target : pc4;
         `NPC_JIRL_JUMP: // 如果npc_op为NPC_JIRL_JUMP，选择jirl指令的跳转目标地址
-            npc = jirl_jump_target;
+            npc = id_jump_taken ? jirl_jump_target : pc4;
         default :   // 默认情况下，也选择顺序执行的下一条指令地址
             npc = pc4;
     endcase

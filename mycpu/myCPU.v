@@ -45,10 +45,18 @@ wire        wb_we_no_excp;
 assign      wb_we_no_excp = wb_rf_we & !excp_occur;     // 发生异常时屏蔽WB阶段的写使能，使异常指令不写回
 `endif
 
+// reg suspend_restore;
+// always @(posedge cpu_clk or negedge cpu_rstn) begin
+//     suspend_restore <= !cpu_rstn ? 1'b0 : (ldst_suspend | jump_taken | suspend_restore) & ex_flag;
+// end
+
+// ? id 阶段计算分支跳转方向和目标地址
 reg suspend_restore;
 always @(posedge cpu_clk or negedge cpu_rstn) begin
-    suspend_restore <= !cpu_rstn ? 1'b0 : (ldst_suspend | jump_taken | suspend_restore) & ex_flag;
+    suspend_restore <= !cpu_rstn ? 1'b0 : (ldst_suspend | pred_error | suspend_restore) & ex_flag;
 end
+
+
 
 reg [31:0] ex_inst_r;
 always @(posedge cpu_clk or negedge cpu_rstn) begin
@@ -67,6 +75,10 @@ wire        load_use;
 wire [31:0] if_pc;              // IF阶段的PC值
 wire [31:0] if_npc;             // IF阶段的下一条指令PC值
 wire [31:0] if_pc4;             // IF阶段PC值+4
+
+wire [31:0] pred_target;
+wire        pred_error;
+
 
 // ID stage signals
 wire        id_valid;           // ID阶段有效信号（有效表示当前有指令正处于ID阶段）
@@ -168,9 +180,10 @@ reg  [31:0] wb_wd;              // WB阶段的写回数据
 // IF
 PC u_PC(
     .cpu_clk        (cpu_clk),
-    .cpu_rstn       (cpu_rstn | (!id_jump_taken & id_is_br_jump & id_valid)),    // 分支指令跳转发生后（即静态预测错误），需要重置 PC
+    .cpu_rstn       (cpu_rstn),    // 分支指令跳转发生后（即静态预测错误），需要重置 PC
     .suspend        (load_use | ldst_suspend),      // 流水线暂停信号
-    .din            (if_npc),           // 下一条指令地址
+    // .din            (if_npc),           // 下一条指令地址
+    .din            (pred_error ? if_npc : pred_target), // 下一条指令地址
     .pc             (if_pc),            // 当前PC值
     .valid          (if_valid),         // IF阶段有效信号
 
@@ -180,12 +193,13 @@ PC u_PC(
     .sync_we        (sync_pc_we),
     .sync_pc        (sync_pc),
     .jump_taken     (jump_taken),
-    .suspend_restore(suspend_restore)
+    .suspend_restore(suspend_restore),
+    .pred_error     (pred_error)
 );
 
 NPC u_NPC(
     .npc_op             (id_valid ? id_npc_op : `NPC_PC4),  // 若EX阶段无效，则IF阶段默认顺序执行
-    .if_pc              (if_pc),
+    // .if_pc              (if_pc),
     .id_pc              (id_pc),
     .rj_data            (id_real_rD1),                     // 寄存器1的值（用于 jirl 指令的跳转）
     .id_jump_taken      (id_valid ? id_jump_taken : 1'b0), // ID阶段是否是分支或跳转指令
@@ -200,12 +214,12 @@ NPC u_NPC(
 // IF/ID
 IF_ID u_IF_ID(
     .cpu_clk    (cpu_clk),
-    .cpu_rstn   (cpu_rstn | (!id_jump_taken & id_is_br_jump & id_valid)),   // 分支指令跳转发生后（即静态预测错误），需要重置 IF/ID 寄存器
+    .cpu_rstn   (cpu_rstn),
     .suspend    (load_use | ldst_suspend),      // 执行访存指令时暂停流水线
-    .valid_in   (if_valid),
+    .valid_in   (if_valid & !pred_error),
 
     .pc_in      (if_pc),
-    .pc4_in     (if_pc4),
+    .pc4_in     (if_pc + 32'h4),
     .inst_in    (inst),
 
     .valid_out  (id_valid),
@@ -261,11 +275,26 @@ EXT u_EXT(
 );
 
 BR_JUMP_TAKEN u_BR_JUMP_TAKEN(
-    .din        (id_inst[31:26]),            // 指令码高 6 位
+    .din        (id_inst[31:26]),     // 指令码高 6 位
     .rd1        (id_rD1),             // 源寄存器1的值 
     .rd2        (id_rD2),             // 源寄存器2的值
 
     .jump_taken (id_jump_taken)       // ID阶段分支或跳转指令是否进行跳转
+);
+
+BPU u_BPU (
+    .cpu_clk        (cpu_clk),
+    .cpu_rstn       (cpu_rstn),
+    .if_pc          (if_pc),
+    // predict branch direction and target
+    .pred_target    (pred_target),
+    .pred_error     (pred_error),
+    // signals to correct BHT
+    .id_valid       (id_valid),
+    .id_is_bj       (id_is_br_jump),
+    .id_pc          (id_pc),
+    .real_taken     (id_is_br_jump ? id_jump_taken : 1'b1), // ID阶段得到的真实跳转方向
+    .real_target    (if_npc)
 );
 
 // ID/EX

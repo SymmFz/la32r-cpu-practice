@@ -24,6 +24,8 @@ module CU (
 assign id_is_br_jump = din[15];
 wire inst_is_b_bl = din[15:12] == 4'b1010;           // I26 型指令（b or bl）  
 wire inst_is_jirl = din[15:11] == `FR5_JIRL;         // jirl 指令
+wire inst_is_jump   = inst_is_b_bl | inst_is_jirl;   // 无条件跳转指令
+wire inst_is_branch = id_is_br_jump & !inst_is_jump;   // 有条件跳转指令
 
 always @(*) begin
     if (id_is_br_jump && inst_is_jirl)
