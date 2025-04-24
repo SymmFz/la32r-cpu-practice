@@ -5,6 +5,12 @@
 module myCPU (
     input  wire         cpu_rstn,
     input  wire         cpu_clk,
+
+    // Instruction Fetch Interface
+    output wire         ifetch_rreq,    // CPU取指请求信号(取指时为1)
+    output wire [31:0]  ifetch_addr,    // 取指地址
+    input  wire         ifetch_valid,   // 返回指令机器码的有效信号
+    input  wire [31:0]  ifetch_inst,    // 返回的指令机器码
     
     // Data Access Interface
     output wire [ 3:0]  daccess_ren,    // 读使能，发出读请求时置为4'hF
@@ -50,12 +56,10 @@ assign      wb_we_no_excp = wb_rf_we & !excp_occur;     // 发生异常时屏蔽
 //     suspend_restore <= !cpu_rstn ? 1'b0 : (ldst_suspend | jump_taken | suspend_restore) & ex_flag;
 // end
 
-// ? id 阶段计算分支跳转方向和目标地址
 reg suspend_restore;
 always @(posedge cpu_clk or negedge cpu_rstn) begin
     suspend_restore <= !cpu_rstn ? 1'b0 : (ldst_suspend | pred_error | suspend_restore) & ex_flag;
 end
-
 
 
 reg [31:0] ex_inst_r;
@@ -63,8 +67,14 @@ always @(posedge cpu_clk or negedge cpu_rstn) begin
     ex_inst_r <= !cpu_rstn ? 32'h0 : ex_inst; 
 end
 
-wire [31:0] inst = suspend_restore ? ex_inst_r : ex_inst;
+assign      ifetch_rreq = ex_flag;          // 需要执行指令时myCPU发出取指请求
+assign      ifetch_addr = if_pc;            // 以当前PC值发出取指请求
+wire        inst_valid  = ifetch_valid;
+wire [31:0] inst        = ifetch_inst;
 /****** inc_dev ******/
+
+
+
 
 // IF stage signals
 wire        if_valid;           // IF阶段有效信号（有效表示当前有指令正处于IF阶段）
@@ -188,7 +198,7 @@ PC u_PC(
     .valid          (if_valid),         // IF阶段有效信号
 
     // inc_dev
-    .ex_flag        (ex_flag),
+    .ex_flag        (inst_valid),
     .sync_inc       (sync_pc_inc),
     .sync_we        (sync_pc_we),
     .sync_pc        (sync_pc),
@@ -347,7 +357,7 @@ ALU u_ALU(
 always @(*) begin
     // 根据选择信号，在EX阶段选择相应的数据用于前递
     case (ex_wd_sel)
-        `WD_RAM: ex_wd = 32'h0;     // ? 需要核实
+        `WD_RAM: ex_wd = 32'h0;
         `WD_ALU: ex_wd = ex_alu_C;
         `WD_PC4: ex_wd = ex_pc4;
         default: ex_wd = 32'h12345678;
@@ -355,9 +365,16 @@ always @(*) begin
 
     // 判断访存地址是否对齐，地址不对齐时不访存
     case (ex_ram_we)
-        default:
+        `RAM_WE_B:      // st.b
+            ldst_unalign = 1'b0;
+        `RAM_WE_H:      // st.h
+            ldst_unalign = (ex_alu_C[1:0] != 2'h0) & (ex_alu_C[1:0] != 2'h2);
+        `RAM_WE_W:      // st.w
+            ldst_unalign = (ex_alu_C[1:0] != 2'b00);
+        default:        // load 类指令
             case (ex_ram_ext_op)
                 `RAM_EXT_H : ldst_unalign = (ex_alu_C[1:0] != 2'h0) & (ex_alu_C[1:0] != 2'h2);
+                `RAM_EXT_HU: ldst_unalign = (ex_alu_C[1:0] != 2'h0) & (ex_alu_C[1:0] != 2'h2);
                 `RAM_EXT_W : ldst_unalign = (ex_alu_C[1:0] != 2'b00);
                 default    : ldst_unalign = 1'b0;   // ld.b 也属于此类
             endcase

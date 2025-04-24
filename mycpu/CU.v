@@ -76,7 +76,8 @@ always @(*) begin
                 4'b1000: ram_ext_op = `RAM_EXT_BU;      // ld.bu
                 4'b0001: ram_ext_op = `RAM_EXT_H;       // ld.h
                 4'b1001: ram_ext_op = `RAM_EXT_HU;      // ld.hu
-                default: ram_ext_op = `RAM_EXT_N;       // ld.w & store inst
+                4'b0010: ram_ext_op = `RAM_EXT_W;       // ld.w
+                default: ram_ext_op = `RAM_EXT_N;       // store inst
             endcase
         end
         default: ram_ext_op = `RAM_EXT_N;
@@ -157,11 +158,15 @@ end
 always @(*) begin
     case (din[15:13])
         3'b010: begin
-            case(din[8:7])
-                2'b00:  ram_we = `RAM_WE_B;
-                2'b01:  ram_we = `RAM_WE_H;
-                2'b10:  ram_we = `RAM_WE_W;
-            endcase
+            if (din[9]) begin         // store 类指令
+                case(din[8:7])
+                    2'b00:  ram_we = `RAM_WE_B;
+                    2'b01:  ram_we = `RAM_WE_H;
+                    2'b10:  ram_we = `RAM_WE_W;
+                endcase
+            end else begin
+                ram_we = `RAM_WE_N;   // load 类指令
+            end
         end
         default: ram_we = `RAM_WE_N;
     endcase

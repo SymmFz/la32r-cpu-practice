@@ -1,8 +1,8 @@
 // `define ENABLE_ICACHE
 // `define ENABLE_DCACHE
 
-// `define CACHE_BLK_LEN  4
-// `define CACHE_BLK_SIZE (`CACHE_BLK_LEN*32)
+`define CACHE_BLK_LEN  4
+`define CACHE_BLK_SIZE (`CACHE_BLK_LEN*32)
 
 // PC复位初始值
 `define PC_INIT_VAL     32'h1C000000

@@ -43,24 +43,54 @@ always @(posedge clk or negedge rstn) begin
             case (mem_ram_we)
                 `RAM_WE_B: begin
                     case (offset)
-                        2'b00:  da_wen <= 4'b0001;
-                        2'b01:  da_wen <= 4'b0010;
-                        2'b10:  da_wen <= 4'b0100;
-                        2'b11:  da_wen <= 4'b1000;
-                        default:da_wen <= 4'b0000;
+                        2'b00:  begin
+                            da_wen <= 4'b0001;
+                            da_wdata <= {24'b0, mem_ram_wdata[7:0]};
+                        end
+                        2'b01:  begin
+                            da_wen <= 4'b0010;
+                            da_wdata <= {16'b0, mem_ram_wdata[7:0], 8'b0};
+                        end
+                        2'b10:  begin
+                            da_wen <= 4'b0100;
+                            da_wdata <= {8'b0, mem_ram_wdata[7:0], 16'b0};
+                        end
+                        2'b11:  begin
+                            da_wen <= 4'b1000;
+                            da_wdata <= {mem_ram_wdata[7:0], 24'b0};
+                        end
+                        default: begin
+                            da_wen <= 4'b0000;
+                            da_wdata <= 32'b0;
+                        end
                     endcase
                 end
                 `RAM_WE_H: begin
                     case (offset)
-                        2'b00:  da_wen <= 4'b0011;
-                        2'b10:  da_wen <= 4'b1100;
-                        default:da_wen <= 4'b0000;
+                        2'b00:  begin
+                            da_wen <= 4'b0011;
+                            da_wdata <= {16'b0, mem_ram_wdata[15:0]};
+                        end
+                        2'b10:  begin
+                            da_wen <= 4'b1100;
+                            da_wdata <= {mem_ram_wdata[15:0], 16'b0};
+                        end
+                        default: begin
+                            da_wen <= 4'b0000;
+                            da_wdata <= 32'b0;
+                        end
                     endcase
                 end
                 `RAM_WE_W: begin
                     case (offset)
-                        2'b00:  da_wen <= 4'b1111;
-                        default:da_wen <= 4'b0000;
+                        2'b00:  begin
+                            da_wen <= 4'b1111;
+                            da_wdata <= mem_ram_wdata;
+                        end
+                        default: begin
+                            da_wen <= 4'b0000;
+                            da_wdata <= 32'b0;
+                        end
                     endcase
                 end
                 default: begin              // load 类指令
@@ -68,15 +98,10 @@ always @(posedge clk or negedge rstn) begin
                     case (mem_ram_ext_op)
                         `RAM_EXT_B : da_ren <= 4'hF;
                         `RAM_EXT_BU: da_ren <= 4'hF;
-                        `RAM_EXT_H :                        // ld.h
-                            if (offset == 2'h0 || offset == 2'h2)
-                                da_ren <= 4'hF;
-                        `RAM_EXT_HU:                        // ld.h
-                            if (offset == 2'h0 || offset == 2'h2)
-                                da_ren <= 4'hF;
-                        default:                            // ld.w
-                            if (offset == 2'h0)
-                                da_ren <= 4'hF;
+                        `RAM_EXT_H : da_ren <= 4'hF;
+                        `RAM_EXT_HU: da_ren <= 4'hF;
+                        `RAM_EXT_W : da_ren <= 4'hF;
+                        default:     da_ren <= 4'h0;
                     endcase
                 end
             endcase
