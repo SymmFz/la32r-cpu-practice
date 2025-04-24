@@ -1,6 +1,6 @@
 `include "mycpu_inst.vh"
 
-// `define EX_ONE_BY_ONE
+`define EX_ONE_BY_ONE
 
 module incdev_control(
     input  wire         clk           ,

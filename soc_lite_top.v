@@ -106,42 +106,42 @@ end
 endgenerate
 
 //cpu axi
-wire [3 :0] cpu_arid   ;
-wire [31:0] cpu_araddr ;
-wire [7 :0] cpu_arlen  ;
-wire [2 :0] cpu_arsize ;
-wire [1 :0] cpu_arburst;
-wire [1 :0] cpu_arlock ;
-wire [3 :0] cpu_arcache;
-wire [2 :0] cpu_arprot ;
-wire        cpu_arvalid;
-wire        cpu_arready;
-wire [3 :0] cpu_rid    ;
-wire [31:0] cpu_rdata  ;
-wire [1 :0] cpu_rresp  ;
-wire        cpu_rlast  ;
-wire        cpu_rvalid ;
-wire        cpu_rready ;
-wire [3 :0] cpu_awid   ;
-wire [31:0] cpu_awaddr ;
-wire [7 :0] cpu_awlen  ;
-wire [2 :0] cpu_awsize ;
-wire [1 :0] cpu_awburst;
-wire [1 :0] cpu_awlock ;
-wire [3 :0] cpu_awcache;
-wire [2 :0] cpu_awprot ;
-wire        cpu_awvalid;
-wire        cpu_awready;
-wire [3 :0] cpu_wid    ;
-wire [31:0] cpu_wdata  ;
-wire [3 :0] cpu_wstrb  ;
-wire        cpu_wlast  ;
-wire        cpu_wvalid ;
-wire        cpu_wready ;
-wire [3 :0] cpu_bid    ;
-wire [1 :0] cpu_bresp  ;
-wire        cpu_bvalid ;
-wire        cpu_bready ;
+wire [3 :0] cpu_arid   , ref_arid   , usr_arid   ;
+wire [31:0] cpu_araddr , ref_araddr , usr_araddr ;
+wire [7 :0] cpu_arlen  , ref_arlen  , usr_arlen  ;
+wire [2 :0] cpu_arsize , ref_arsize , usr_arsize ;
+wire [1 :0] cpu_arburst, ref_arburst, usr_arburst;
+wire [0 :0] cpu_arlock , ref_arlock , usr_arlock ;
+wire [3 :0] cpu_arcache, ref_arcache, usr_arcache;
+wire [2 :0] cpu_arprot , ref_arprot , usr_arprot ;
+wire        cpu_arvalid, ref_arvalid, usr_arvalid;
+wire        cpu_arready, ref_arready, usr_arready;
+wire [3 :0] cpu_rid    , ref_rid    , usr_rid    ;
+wire [31:0] cpu_rdata  , ref_rdata  , usr_rdata  ;
+wire [1 :0] cpu_rresp  , ref_rresp  , usr_rresp  ;
+wire        cpu_rlast  , ref_rlast  , usr_rlast  ;
+wire        cpu_rvalid , ref_rvalid , usr_rvalid ;
+wire        cpu_rready , ref_rready , usr_rready ;
+wire [3 :0] cpu_awid   , ref_awid   , usr_awid   ;
+wire [31:0] cpu_awaddr , ref_awaddr , usr_awaddr ;
+wire [7 :0] cpu_awlen  , ref_awlen  , usr_awlen  ;
+wire [2 :0] cpu_awsize , ref_awsize , usr_awsize ;
+wire [1 :0] cpu_awburst, ref_awburst, usr_awburst;
+wire [0 :0] cpu_awlock , ref_awlock , usr_awlock ;
+wire [3 :0] cpu_awcache, ref_awcache, usr_awcache;
+wire [2 :0] cpu_awprot , ref_awprot , usr_awprot ;
+wire        cpu_awvalid, ref_awvalid, usr_awvalid;
+wire        cpu_awready, ref_awready, usr_awready;
+wire [3 :0] cpu_wid    , ref_wid    , usr_wid    ;
+wire [31:0] cpu_wdata  , ref_wdata  , usr_wdata  ;
+wire [3 :0] cpu_wstrb  , ref_wstrb  , usr_wstrb  ;
+wire        cpu_wlast  , ref_wlast  , usr_wlast  ;
+wire        cpu_wvalid , ref_wvalid , usr_wvalid ;
+wire        cpu_wready , ref_wready , usr_wready ;
+wire [3 :0] cpu_bid    , ref_bid    , usr_bid    ;
+wire [1 :0] cpu_bresp  , ref_bresp  , usr_bresp  ;
+wire        cpu_bvalid , ref_bvalid , usr_bvalid ;
+wire        cpu_bready , ref_bready , usr_bready ;
 
 //cpu axi wrap
 wire        cpu_wrap_aclk   ;
@@ -282,7 +282,6 @@ wire [ 4:0] sync_wb_wreg  ;
 wire [31:0] sync_wb_wdata ;
 
 //debug signals
-wire debug1_wb_valid;
 wire [31:0] debug_wb_pc, debug0_wb_pc, debug1_wb_pc;
 wire [3 :0] debug_wb_rf_we, debug0_wb_rf_we, debug1_wb_rf_we;
 wire [4 :0] debug_wb_rf_wnum, debug0_wb_rf_wnum, debug1_wb_rf_wnum;
@@ -317,7 +316,7 @@ incdev_control U_incdev(
     // Interface to user CPU
     .usr_ex_flag    (ex_flag            ),
     .usr_ex_inst    (ex_inst            ),
-    .usr_ex_finish  (debug1_wb_valid    ),
+    .usr_ex_finish  (ex_finish          ),
     .usr_pc_inc     (sync_pc_inc        ),
     .usr_pc_we      (sync_pc_we         ),
     .usr_pc         (sync_pc            ),
@@ -340,46 +339,46 @@ core_top openla500(
     .aclk      (cpu_clk       ),
     .aresetn   (cpu_resetn    ),   //low active
 
-    .arid      (cpu_arid      ),
-    .araddr    (cpu_araddr    ),
-    .arlen     (cpu_arlen     ),
-    .arsize    (cpu_arsize    ),
-    .arburst   (cpu_arburst   ),
-    .arlock    (cpu_arlock    ),
-    .arcache   (cpu_arcache   ),
-    .arprot    (cpu_arprot    ),
-    .arvalid   (cpu_arvalid   ),
-    .arready   (cpu_arready   ),
+    .arid      (ref_arid      ),
+    .araddr    (ref_araddr    ),
+    .arlen     (ref_arlen     ),
+    .arsize    (ref_arsize    ),
+    .arburst   (ref_arburst   ),
+    .arlock    (ref_arlock    ),
+    .arcache   (ref_arcache   ),
+    .arprot    (ref_arprot    ),
+    .arvalid   (ref_arvalid   ),
+    .arready   (ref_arready   ),
                 
-    .rid       (cpu_rid       ),
-    .rdata     (cpu_rdata     ),
-    .rresp     (cpu_rresp     ),
-    .rlast     (cpu_rlast     ),
-    .rvalid    (cpu_rvalid    ),
-    .rready    (cpu_rready    ),
+    .rid       (ref_rid       ),
+    .rdata     (ref_rdata     ),
+    .rresp     (ref_rresp     ),
+    .rlast     (ref_rlast     ),
+    .rvalid    (ref_rvalid    ),
+    .rready    (ref_rready    ),
                
-    .awid      (cpu_awid      ),
-    .awaddr    (cpu_awaddr    ),
-    .awlen     (cpu_awlen     ),
-    .awsize    (cpu_awsize    ),
-    .awburst   (cpu_awburst   ),
-    .awlock    (cpu_awlock    ),
-    .awcache   (cpu_awcache   ),
-    .awprot    (cpu_awprot    ),
-    .awvalid   (cpu_awvalid   ),
-    .awready   (cpu_awready   ),
+    .awid      (ref_awid      ),
+    .awaddr    (ref_awaddr    ),
+    .awlen     (ref_awlen     ),
+    .awsize    (ref_awsize    ),
+    .awburst   (ref_awburst   ),
+    .awlock    (ref_awlock    ),
+    .awcache   (ref_awcache   ),
+    .awprot    (ref_awprot    ),
+    .awvalid   (ref_awvalid   ),
+    .awready   (ref_awready   ),
     
-    .wid       (cpu_wid       ),
-    .wdata     (cpu_wdata     ),
-    .wstrb     (cpu_wstrb     ),
-    .wlast     (cpu_wlast     ),
-    .wvalid    (cpu_wvalid    ),
-    .wready    (cpu_wready    ),
+    .wid       (ref_wid       ),
+    .wdata     (ref_wdata     ),
+    .wstrb     (ref_wstrb     ),
+    .wlast     (ref_wlast     ),
+    .wvalid    (ref_wvalid    ),
+    .wready    (ref_wready    ),
     
-    .bid       (cpu_bid       ),
-    .bresp     (cpu_bresp     ),
-    .bvalid    (cpu_bvalid    ),
-    .bready    (cpu_bready    ),
+    .bid       (ref_bid       ),
+    .bresp     (ref_bresp     ),
+    .bvalid    (ref_bvalid    ),
+    .bready    (ref_bready    ),
 
     //incDev interface
     .incdev_pause      (ref_pause         ),
@@ -411,46 +410,46 @@ mycpu_top u_cpu(
     .aclk      (cpu_clk       ),
     .aresetn   (cpu_resetn    ),   //low active
 
-    .arid      (cpu_arid      ),
-    .araddr    (cpu_araddr    ),
-    .arlen     (cpu_arlen     ),
-    .arsize    (cpu_arsize    ),
-    .arburst   (cpu_arburst   ),
-    .arlock    (cpu_arlock    ),
-    .arcache   (cpu_arcache   ),
-    .arprot    (cpu_arprot    ),
-    .arvalid   (cpu_arvalid   ),
-    .arready   (cpu_arready   ),
+    .arid      (usr_arid      ),
+    .araddr    (usr_araddr    ),
+    .arlen     (usr_arlen     ),
+    .arsize    (usr_arsize    ),
+    .arburst   (usr_arburst   ),
+    .arlock    (usr_arlock    ),
+    .arcache   (usr_arcache   ),
+    .arprot    (usr_arprot    ),
+    .arvalid   (usr_arvalid   ),
+    .arready   (usr_arready   ),
                 
-    .rid       (cpu_rid       ),
-    .rdata     (cpu_rdata     ),
-    .rresp     (cpu_rresp     ),
-    .rlast     (cpu_rlast     ),
-    .rvalid    (cpu_rvalid    ),
-    .rready    (cpu_rready    ),
+    .rid       (usr_rid       ),
+    .rdata     (usr_rdata     ),
+    .rresp     (usr_rresp     ),
+    .rlast     (usr_rlast     ),
+    .rvalid    (usr_rvalid    ),
+    .rready    (usr_rready    ),
                
-    .awid      (cpu_awid      ),
-    .awaddr    (cpu_awaddr    ),
-    .awlen     (cpu_awlen     ),
-    .awsize    (cpu_awsize    ),
-    .awburst   (cpu_awburst   ),
-    .awlock    (cpu_awlock    ),
-    .awcache   (cpu_awcache   ),
-    .awprot    (cpu_awprot    ),
-    .awvalid   (cpu_awvalid   ),
-    .awready   (cpu_awready   ),
+    .awid      (usr_awid      ),
+    .awaddr    (usr_awaddr    ),
+    .awlen     (usr_awlen     ),
+    .awsize    (usr_awsize    ),
+    .awburst   (usr_awburst   ),
+    .awlock    (usr_awlock    ),
+    .awcache   (usr_awcache   ),
+    .awprot    (usr_awprot    ),
+    .awvalid   (usr_awvalid   ),
+    .awready   (usr_awready   ),
     
-    .wid       (cpu_wid       ),
-    .wdata     (cpu_wdata     ),
-    .wstrb     (cpu_wstrb     ),
-    .wlast     (cpu_wlast     ),
-    .wvalid    (cpu_wvalid    ),
-    .wready    (cpu_wready    ),
+    .wid       (usr_wid       ),
+    .wdata     (usr_wdata     ),
+    .wstrb     (usr_wstrb     ),
+    .wlast     (usr_wlast     ),
+    .wvalid    (usr_wvalid    ),
+    .wready    (usr_wready    ),
     
-    .bid       (cpu_bid       ),
-    .bresp     (cpu_bresp     ),
-    .bvalid    (cpu_bvalid    ),
-    .bready    (cpu_bready    ),
+    .bid       (usr_bid       ),
+    .bresp     (usr_bresp     ),
+    .bvalid    (usr_bvalid    ),
+    .bready    (usr_bready    ),
 
     //incDev sync interface
     .ex_flag          (ex_flag       ),
@@ -468,14 +467,90 @@ mycpu_top u_cpu(
 `endif
 
     //debug interface
-    .debug_wb_valid   (debug1_wb_valid   ),
+    // .debug_wb_valid   (debug1_wb_valid   ),
     .debug_wb_pc      (debug1_wb_pc      ),
     .debug_wb_rf_we   (debug1_wb_rf_we   ),
     .debug_wb_rf_wnum (debug1_wb_rf_wnum ),
     .debug_wb_rf_wdata(debug1_wb_rf_wdata)
 );
 
+axi_crossbar_0 incdev_axi_bridge (
+    .aclk               (cpu_clk   ),
+    .aresetn            (cpu_resetn),
+    .s_axi_awid         ({usr_awid   , ref_awid   }),
+    .s_axi_awaddr       ({usr_awaddr , ref_awaddr }),
+    .s_axi_awlen        ({usr_awlen  , ref_awlen  }),
+    .s_axi_awsize       ({usr_awsize , ref_awsize }),
+    .s_axi_awburst      ({usr_awburst, ref_awburst}),
+    .s_axi_awlock       ({usr_awlock , ref_awlock }),
+    .s_axi_awcache      ({usr_awcache, ref_awcache}),
+    .s_axi_awprot       ({usr_awprot , ref_awprot }),
+    .s_axi_awvalid      ({usr_awvalid, ref_awvalid}),
+    .s_axi_awready      ({usr_awready, ref_awready}),
+    .s_axi_wdata        ({usr_wdata  , ref_wdata  }),
+    .s_axi_wstrb        ({usr_wstrb  , ref_wstrb  }),
+    .s_axi_wlast        ({usr_wlast  , ref_wlast  }),
+    .s_axi_wvalid       ({usr_wvalid , ref_wvalid }),
+    .s_axi_wready       ({usr_wready , ref_wready }),
+    .s_axi_bid          ({usr_bid    , ref_bid    }),
+    .s_axi_bresp        ({usr_bresp  , ref_bresp  }),
+    .s_axi_bvalid       ({usr_bvalid , ref_bvalid }),
+    .s_axi_bready       ({usr_bready , ref_bready }),
+    .s_axi_arid         ({usr_arid   , ref_arid   }),
+    .s_axi_araddr       ({usr_araddr , ref_araddr }),
+    .s_axi_arlen        ({usr_arlen  , ref_arlen  }),
+    .s_axi_arsize       ({usr_arsize , ref_arsize }),
+    .s_axi_arburst      ({usr_arburst, ref_arburst}),
+    .s_axi_arlock       ({usr_arlock , ref_arlock }),
+    .s_axi_arcache      ({usr_arcache, ref_arcache}),
+    .s_axi_arprot       ({usr_arprot , ref_arprot }),
+    .s_axi_arvalid      ({usr_arvalid, ref_arvalid}),
+    .s_axi_arready      ({usr_arready, ref_arready}),
+    .s_axi_rid          ({usr_rid    , ref_rid    }),
+    .s_axi_rdata        ({usr_rdata  , ref_rdata  }),
+    .s_axi_rresp        ({usr_rresp  , ref_rresp  }),
+    .s_axi_rlast        ({usr_rlast  , ref_rlast  }),
+    .s_axi_rvalid       ({usr_rvalid , ref_rvalid }),
+    .s_axi_rready       ({usr_rready , ref_rready }),
+    .m_axi_awid         (cpu_awid   ),
+    .m_axi_awaddr       (cpu_awaddr ),
+    .m_axi_awlen        (cpu_awlen  ),
+    .m_axi_awsize       (cpu_awsize ),
+    .m_axi_awburst      (cpu_awburst),
+    .m_axi_awlock       (cpu_awlock ),
+    .m_axi_awcache      (cpu_awcache),
+    .m_axi_awprot       (cpu_awprot ),
+    .m_axi_awvalid      (cpu_awvalid),
+    .m_axi_awready      (cpu_awready),
+    .m_axi_wdata        (cpu_wdata  ),
+    .m_axi_wstrb        (cpu_wstrb  ),
+    .m_axi_wlast        (cpu_wlast  ),
+    .m_axi_wvalid       (cpu_wvalid ),
+    .m_axi_wready       (cpu_wready ),
+    .m_axi_bid          (cpu_bid    ),
+    .m_axi_bresp        (cpu_bresp  ),
+    .m_axi_bvalid       (cpu_bvalid ),
+    .m_axi_bready       (cpu_bready ),
+    .m_axi_arid         (cpu_arid   ),
+    .m_axi_araddr       (cpu_araddr ),
+    .m_axi_arlen        (cpu_arlen  ),
+    .m_axi_arsize       (cpu_arsize ),
+    .m_axi_arburst      (cpu_arburst),
+    .m_axi_arlock       (cpu_arlock ),
+    .m_axi_arcache      (cpu_arcache),
+    .m_axi_arprot       (cpu_arprot ),
+    .m_axi_arvalid      (cpu_arvalid),
+    .m_axi_arready      (cpu_arready),
+    .m_axi_rid          (cpu_rid    ),
+    .m_axi_rdata        (cpu_rdata  ),
+    .m_axi_rresp        (cpu_rresp  ),
+    .m_axi_rlast        (cpu_rlast  ),
+    .m_axi_rvalid       (cpu_rvalid ),
+    .m_axi_rready       (cpu_rready )
+);
+
 //cpu axi wrap
+assign cpu_wid = 4'h0;
 axi_wrap u_cpu_axi_wrap(
   .m_aclk    ( cpu_clk     ),
   .m_aresetn ( cpu_resetn  ),
@@ -485,7 +560,7 @@ axi_wrap u_cpu_axi_wrap(
   .m_arlen   ( cpu_arlen   ),
   .m_arsize  ( cpu_arsize  ),
   .m_arburst ( cpu_arburst ),
-  .m_arlock  ( cpu_arlock  ),
+  .m_arlock  ({1'b0, cpu_arlock}),
   .m_arcache ( cpu_arcache ),
   .m_arprot  ( cpu_arprot  ),
   .m_arvalid ( cpu_arvalid ),
@@ -503,7 +578,7 @@ axi_wrap u_cpu_axi_wrap(
   .m_awlen   ( cpu_awlen   ),
   .m_awsize  ( cpu_awsize  ),
   .m_awburst ( cpu_awburst ),
-  .m_awlock  ( cpu_awlock  ),
+  .m_awlock  ({1'b0, cpu_awlock}),
   .m_awcache ( cpu_awcache ),
   .m_awprot  ( cpu_awprot  ),
   .m_awvalid ( cpu_awvalid ),
