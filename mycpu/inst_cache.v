@@ -42,20 +42,14 @@ module inst_cache(
     // cache 块内地址位宽： 4
 
     // 主存：  32 位
+    // 31-tag-10, 9-块地址-4, 3-块内地址-0
     // cache: 10-组号-5, 4-组内块号-4, 3-块内地址-0
 
     // 主存地址分解
     wire [`MEM_TAG_LEN_LEN-1  :0] tag_from_cpu = inst_addr[31:32-`MEM_TAG_LEN_LEN];     // 主存地址的TAG
-    // 主存地址的Cache索引 / ICache存储体的地址
+    // 主存地址的Cache索引 / ICache存储体的地址（块号/组号）
     wire [`CACHE_GRP_NUM_LEN-1:0] cache_index  = inst_addr[`CACHE_OFFSET_LEN+`CACHE_GRP_NUM_LEN-1:`CACHE_OFFSET_LEN];
     wire [`CACHE_OFFSET_LEN-1 :0] offset       = inst_addr[`CACHE_OFFSET_LEN-1:0];     // 32位字偏移量
-
-    wire [`CACHE_LINE_LEN-1:0] cache_line_r0;                   // 从ICache存储体0读出的Cache块
-    wire [`CACHE_LINE_LEN-1:0] cache_line_r1;                   // 从ICache存储体1读出的Cache块
-    wire       valid_bit0     = cache_line_r0[`CACHE_LINE_LEN-1];     // Cache组内第0块的有效位
-    wire       valid_bit1     = cache_line_r1[`CACHE_LINE_LEN-1];     // Cache组内第1块的有效位
-    wire [`MEM_TAG_LEN_LEN-1:0] tag_from_set0  = cache_line_r0[`CACHE_BLK_SIZE+`MEM_TAG_LEN_LEN-1:`CACHE_BLK_SIZE];     // Cache组内第0块的TAG
-    wire [`MEM_TAG_LEN_LEN-1:0] tag_from_set1  = cache_line_r1[`CACHE_BLK_SIZE+`MEM_TAG_LEN_LEN-1:`CACHE_BLK_SIZE];     // Cache组内第1块的TAG
 
     // 定义ICache状态机的状态变量
     reg  [1:0] state, next_state;
@@ -63,13 +57,16 @@ module inst_cache(
     localparam TAG_CHECK = 2'b01;
     localparam REFILL    = 2'b10;
 
-    // 需保证命中时，hit信号仅有效1个时钟周期
-    wire hit0 = valid_bit0 & (tag_from_cpu == tag_from_set0); // Cache组内第0块的命中信号
-    wire hit1 = valid_bit1 & (tag_from_cpu == tag_from_set1); // Cache组内第1块的命中信号
+    // read hit: 需保证命中时，hit信号仅有效1个时钟周期
+    wire hit0;
+    wire hit1;
     wire hit  = hit0 | hit1;
-
-    wire [`CACHE_BLK_SIZE-1:0] hit_data_blk = {`CACHE_BLK_SIZE{hit0}} & cache_line_r0[`CACHE_BLK_SIZE-1:0] |
-                                              {`CACHE_BLK_SIZE{hit1}} & cache_line_r1[`CACHE_BLK_SIZE-1:0];
+    
+    // read data
+    wire [`CACHE_BLK_SIZE-1:0] cache_data_r0;
+    wire [`CACHE_BLK_SIZE-1:0] cache_data_r1;
+    wire [`CACHE_BLK_SIZE-1:0] hit_data_blk = {`CACHE_BLK_SIZE{hit0}} & cache_data_r0 |
+                                              {`CACHE_BLK_SIZE{hit1}} & cache_data_r1;
 
     wire [31:0] word0 = hit_data_blk[31: 0];
     wire [31:0] word1 = hit_data_blk[63:32];
@@ -80,36 +77,48 @@ module inst_cache(
                                 (offset[`CACHE_OFFSET_LEN-1:2] == 2'h2) ? word2 :
                                 (offset[`CACHE_OFFSET_LEN-1:2] == 2'h3) ? word3 : 32'b0;    // 访存请求的地址
 
+    // read data: 根据字偏移，选择组内命中的Cache行中的某个32位字作为输出
     always @(*) begin
-        //根据字偏移，选择组内命中的Cache行中的某个32位字作为输出
-        inst_valid = (state == TAG_CHECK) ? hit : 1'b0;
-        inst_out   = (state == TAG_CHECK) ? selected_word : 32'b0;  // 移位后自动截断成 32 位字
+        inst_valid = (state == TAG_CHECK) ? hit           : 1'b0;
+        inst_out   = (state == TAG_CHECK) ? selected_word : 32'b0;
     end
     
     // 记录第i个Cache组内的Cache块的被访问情况（比如块0被访问，则置use_bit[i]为10，块1被访问则置use_bit[i]为01），用于实现Cache块替换
     reg  [1:0] use_bit [`CACHE_GRP_INDEX_MAX:0];
 
+    // write data
     wire replace_way = use_bit[cache_index][1];
-    wire       cache_we0    = !hit & dev_rvalid & (replace_way == 0);       // ICache存储体0的写使能信号
-    wire       cache_we1    = !hit & dev_rvalid & (replace_way == 1);       // ICache存储体1的写使能信号
-    // ?  是否需要 reg  [`MEM_TAG_LEN_LEN-1:0] tag_from_sram;
-    wire [`CACHE_LINE_LEN-1:0]  cache_line_w = {1'b1, tag_from_cpu, dev_rdata};       // 待写入ICache的Cache行
+    wire cache_we0   = !hit & dev_rvalid & (replace_way == 0);       // ICache存储体0的写使能信号
+    wire cache_we1   = !hit & dev_rvalid & (replace_way == 1);       // ICache存储体1的写使能信号
 
-    // ICache存储体：Block MEM IP核
-    blk_mem_gen_1 U_isram0 (        // ICache存储体0，存储所有Cache组的第0块
-        .clka   (cpu_clk),
-        .wea    (cache_we0),
-        .addra  (cache_index),
-        .dina   (cache_line_w),
-        .douta  (cache_line_r0)
+    icache_set_access_unit #(
+        .CACHE_BLK_SIZE    	(`CACHE_BLK_SIZE   ),
+        .CACHE_TAG_LEN     	(`MEM_TAG_LEN_LEN  ),
+        .CACHE_GRP_NUM_LEN 	(`CACHE_GRP_NUM_LEN)
+    ) u_icache_set_access_unit0 (
+        .cpu_clk             	(cpu_clk              ),
+        .cpu_rstn            	(cpu_rstn             ),
+        .mem_address_tag     	(tag_from_cpu         ),
+        .mem_address_blk_num 	(cache_index          ),
+        .cache_we            	(cache_we0            ),
+        .cache_data_w        	(dev_rdata            ),
+        .cache_hit           	(hit0                 ),
+        .cache_data_r        	(cache_data_r0        )
     );
-
-    blk_mem_gen_1 U_isram1 (        // ICache存储体1，存储所有Cache组的第1块
-        .clka   (cpu_clk),
-        .wea    (cache_we1),
-        .addra  (cache_index),
-        .dina   (cache_line_w),
-        .douta  (cache_line_r1)
+    
+    icache_set_access_unit #(
+        .CACHE_BLK_SIZE    	(`CACHE_BLK_SIZE   ),
+        .CACHE_TAG_LEN     	(`MEM_TAG_LEN_LEN  ),
+        .CACHE_GRP_NUM_LEN 	(`CACHE_GRP_NUM_LEN)
+    ) u_icache_set_access_unit1 (
+        .cpu_clk             	(cpu_clk              ),
+        .cpu_rstn            	(cpu_rstn             ),
+        .mem_address_tag     	(tag_from_cpu         ),
+        .mem_address_blk_num 	(cache_index          ),
+        .cache_we            	(cache_we1            ),
+        .cache_data_w        	(dev_rdata            ),
+        .cache_hit           	(hit1                 ),
+        .cache_data_r        	(cache_data_r1        )
     );
 
     // 状态机现态的更新逻辑
