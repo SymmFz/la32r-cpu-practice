@@ -1,4 +1,4 @@
-// `define ENABLE_ICACHE
+`define ENABLE_ICACHE
 // `define ENABLE_DCACHE
 
 `define CACHE_BLK_LEN  4

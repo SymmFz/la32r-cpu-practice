@@ -2,6 +2,22 @@
 
 `include "defines.vh"
 
+// cache
+`define CACHE_INDEX_LEN           11 // cache 地址位宽 
+`define CACHE_OFFSET_LEN           4 // cache 块内地址位宽，决定数据块大小
+`define CACHE_BLKN_IN_GRP_LEN      1 // cache 组内块号位宽
+`define CACHE_GRP_NUM_LEN   (`CACHE_INDEX_LEN - `CACHE_OFFSET_LEN - `CACHE_BLKN_IN_GRP_LEN) // cache 组号位宽
+
+// mem
+`define MEM_INDEX_LEN  32                                  // 主存地址位宽
+`define MEM_OFFSET_LEN (`CACHE_OFFSET_LEN)                 // 主存块内地址位宽，由 cache 块大小决定
+`define MEM_BLKN_IN_SECTION_LEN (`CACHE_GRP_NUM_LEN)       // 主存区内块号位宽  
+`define MEM_TAG_LEN_LEN (`MEM_INDEX_LEN - `MEM_OFFSET_LEN - `MEM_BLKN_IN_SECTION_LEN) // 主存区号位宽,也是主存 tag 位宽
+
+// important parameters
+`define CACHE_LINE_LEN (1 + `MEM_TAG_LEN_LEN + `CACHE_BLK_SIZE)     // cache 块表长度
+`define CACHE_GRP_INDEX_MAX ((1 << `CACHE_GRP_NUM_LEN) - 1)         // cache 最大 index，或最大组数减一 
+
 module inst_cache(
     input  wire         cpu_clk,
     input  wire         cpu_rstn,       // low active
@@ -20,40 +36,64 @@ module inst_cache(
 
 `ifdef ENABLE_ICACHE    /******** 不要修改此行代码 ********/
 
+    // 参数：实现 2路组相联 映射的L1ICache，数据块大小为128位，Cache容量为2KB；
+    // 主存地址位宽：       32
+    // cache 地址位宽：    11
+    // cache 块内地址位宽： 4
+
+    // 主存：  32 位
+    // cache: 10-组号-5, 4-组内块号-4, 3-块内地址-0
+
     // 主存地址分解
-    wire [?:0] tag_from_cpu   = /* TODO */;     // 主存地址的TAG
-    wire [?:0] cache_index    = /* TODO */;     // 主存地址的Cache索引 / ICache存储体的地址
-    wire [?:0] offset         = /* TODO */;     // 32位字偏移量
+    wire [`MEM_TAG_LEN_LEN-1  :0] tag_from_cpu = inst_addr[31:32-`MEM_TAG_LEN_LEN];     // 主存地址的TAG
+    // 主存地址的Cache索引 / ICache存储体的地址
+    wire [`CACHE_GRP_NUM_LEN-1:0] cache_index  = inst_addr[`CACHE_OFFSET_LEN+`CACHE_GRP_NUM_LEN-1:`CACHE_OFFSET_LEN];
+    wire [`CACHE_OFFSET_LEN-1 :0] offset       = inst_addr[`CACHE_OFFSET_LEN-1:0];     // 32位字偏移量
 
-    wire [?:0] cache_line_r0;                   // 从ICache存储体0读出的Cache块
-    wire [?:0] cache_line_r1;                   // 从ICache存储体1读出的Cache块
-    wire       valid_bit0     = /* TODO */;     // Cache组内第0块的有效位
-    wire       valid_bit1     = /* TODO */;     // Cache组内第1块的有效位
-    wire [?:0] tag_from_set0  = /* TODO */;     // Cache组内第0块的TAG
-    wire [?:0] tag_from_set1  = /* TODO */;     // Cache组内第1块的TAG
+    wire [`CACHE_LINE_LEN-1:0] cache_line_r0;                   // 从ICache存储体0读出的Cache块
+    wire [`CACHE_LINE_LEN-1:0] cache_line_r1;                   // 从ICache存储体1读出的Cache块
+    wire       valid_bit0     = cache_line_r0[`CACHE_LINE_LEN-1];     // Cache组内第0块的有效位
+    wire       valid_bit1     = cache_line_r1[`CACHE_LINE_LEN-1];     // Cache组内第1块的有效位
+    wire [`MEM_TAG_LEN_LEN-1:0] tag_from_set0  = cache_line_r0[`CACHE_BLK_SIZE+`MEM_TAG_LEN_LEN-1:`CACHE_BLK_SIZE];     // Cache组内第0块的TAG
+    wire [`MEM_TAG_LEN_LEN-1:0] tag_from_set1  = cache_line_r1[`CACHE_BLK_SIZE+`MEM_TAG_LEN_LEN-1:`CACHE_BLK_SIZE];     // Cache组内第1块的TAG
 
-    // TODO: 定义ICache状态机的状态变量
-
+    // 定义ICache状态机的状态变量
+    reg  [1:0] state, next_state;
+    localparam IDLE      = 2'b00;
+    localparam TAG_CHECK = 2'b01;
+    localparam REFILL    = 2'b10;
 
     // 需保证命中时，hit信号仅有效1个时钟周期
-    wire hit0 = /* TODO */;     // Cache组内第0块的命中信号
-    wire hit1 = /* TODO */;     // Cache组内第1块的命中信号
+    wire hit0 = valid_bit0 & (tag_from_cpu == tag_from_set0); // Cache组内第0块的命中信号
+    wire hit1 = valid_bit1 & (tag_from_cpu == tag_from_set1); // Cache组内第1块的命中信号
     wire hit  = hit0 | hit1;
 
     wire [`CACHE_BLK_SIZE-1:0] hit_data_blk = {`CACHE_BLK_SIZE{hit0}} & cache_line_r0[`CACHE_BLK_SIZE-1:0] |
                                               {`CACHE_BLK_SIZE{hit1}} & cache_line_r1[`CACHE_BLK_SIZE-1:0];
 
+    wire [31:0] word0 = hit_data_blk[31: 0];
+    wire [31:0] word1 = hit_data_blk[63:32];
+    wire [31:0] word2 = hit_data_blk[95:64];
+    wire [31:0] word3 = hit_data_blk[127:96];
+    wire [31:0] selected_word = (offset[`CACHE_OFFSET_LEN-1:2] == 2'h0) ? word0 :
+                                (offset[`CACHE_OFFSET_LEN-1:2] == 2'h1) ? word1 :
+                                (offset[`CACHE_OFFSET_LEN-1:2] == 2'h2) ? word2 :
+                                (offset[`CACHE_OFFSET_LEN-1:2] == 2'h3) ? word3 : 32'b0;    // 访存请求的地址
+
     always @(*) begin
-        inst_valid = hit;
-        inst_out   = /* TODO: 根据字偏移，选择组内命中的Cache行中的某个32位字作为输出 */;
+        //根据字偏移，选择组内命中的Cache行中的某个32位字作为输出
+        inst_valid = (state == TAG_CHECK) ? hit : 1'b0;
+        inst_out   = (state == TAG_CHECK) ? selected_word : 32'b0;  // 移位后自动截断成 32 位字
     end
     
-    // 记录第i个Cache组内的Cache块的被访问情况（比如块0被访问，则置use_bit[i]为01，块1被访问则置use_bit[i]为10），用于实现Cache块替换
-    reg  [1:0] use_bit [?:0];
+    // 记录第i个Cache组内的Cache块的被访问情况（比如块0被访问，则置use_bit[i]为10，块1被访问则置use_bit[i]为01），用于实现Cache块替换
+    reg  [1:0] use_bit [`CACHE_GRP_INDEX_MAX:0];
 
-    wire       cache_we0    = /* TODO */;       // ICache存储体0的写使能信号
-    wire       cache_we1    = /* TODO */;       // ICache存储体1的写使能信号
-    wire [?:0] cache_line_w = /* TODO */;       // 待写入ICache的Cache行
+    wire replace_way = use_bit[cache_index][1];
+    wire       cache_we0    = !hit & dev_rvalid & (replace_way == 0);       // ICache存储体0的写使能信号
+    wire       cache_we1    = !hit & dev_rvalid & (replace_way == 1);       // ICache存储体1的写使能信号
+    // ?  是否需要 reg  [`MEM_TAG_LEN_LEN-1:0] tag_from_sram;
+    wire [`CACHE_LINE_LEN-1:0]  cache_line_w = {1'b1, tag_from_cpu, dev_rdata};       // 待写入ICache的Cache行
 
     // ICache存储体：Block MEM IP核
     blk_mem_gen_1 U_isram0 (        // ICache存储体0，存储所有Cache组的第0块
@@ -72,13 +112,70 @@ module inst_cache(
         .douta  (cache_line_r1)
     );
 
-    // TODO: 编写状态机现态的更新逻辑
+    // 状态机现态的更新逻辑
+    always @(posedge cpu_clk or negedge cpu_rstn) begin
+        if (!cpu_rstn) begin
+            state <= IDLE;
+        end else begin
+            state <= next_state;
+        end
+    end
     
     
-    // TODO: 编写状态机的状态转移逻辑
-    
+    // 状态机的状态转移逻辑
+    always @(*) begin
+        case (state)
+            IDLE:       next_state = inst_rreq ? TAG_CHECK : IDLE;
+            TAG_CHECK:  next_state = hit ? IDLE : REFILL;
+            REFILL:     next_state = dev_rvalid ? TAG_CHECK : REFILL;
+        endcase
+    end
 
-    // TODO: 生成状态机的输出信号：use_bit的更新，以及访存请求（即cpu_raddr和cpu_ren）的生成
+    // 生成状态机的输出信号：use_bit的更新，以及访存请求（即cpu_raddr和cpu_ren）的生成
+    wire [31:0] block_aligned_addr = {inst_addr[31:`CACHE_OFFSET_LEN], {`CACHE_OFFSET_LEN{1'b0}}};
+    reg request_sent;
+    integer i;
+    always @(posedge cpu_clk or negedge cpu_rstn) begin
+        if (!cpu_rstn) begin
+            for (i = 0; i < `CACHE_GRP_INDEX_MAX + 1; i = i + 1) begin
+                use_bit[i] <= 2'b00;
+            end
+            cpu_ren      <= 4'b0000;
+            cpu_raddr    <= 32'b0;
+            request_sent <= 1'b0;
+        end
+        else begin
+            case (state)
+                IDLE: begin
+                    cpu_ren      <= 4'b0000;
+                    cpu_raddr    <= 32'b0;
+                    request_sent <= 1'b0;
+                end
+                TAG_CHECK: begin
+                    if (hit) begin
+                        cpu_ren   <= 4'b0000;
+                        cpu_raddr <= 32'b0;
+                        use_bit[cache_index] <= {hit0, hit1};
+                    end else if (dev_rrdy & !request_sent) begin
+                        cpu_ren       <= 4'b1111;
+                        cpu_raddr     <= block_aligned_addr;
+                        request_sent  <= 1'b1;
+                    end
+                end
+                REFILL: begin
+                    if (dev_rrdy & !request_sent) begin
+                        cpu_ren       <= 4'b1111;
+                        cpu_raddr     <= block_aligned_addr;
+                        // ? 是否需要 tag_from_sram <= tag_from_cpu;
+                        request_sent  <= 1'b1;
+                    end else begin
+                        cpu_ren   <= 4'b0000;
+                        cpu_raddr <= 32'b0;
+                    end
+                end
+            endcase
+        end
+    end
 
 
     /******** 不要修改以下代码 ********/
