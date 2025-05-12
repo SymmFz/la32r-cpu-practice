@@ -239,8 +239,9 @@ IF_ID u_IF_ID(
 );
 
 // ID
+wire [16:0] id_inst_temp = id_inst[31:15]; // 修复仿真错误：不使用中间值会导致仿真 din 变成低 17 位
 CU u_CU(
-    .din            (id_inst[31:15]),
+    .din            (id_inst_temp),
     .npc_op         (id_npc_op),
     .ext_op         (id_ext_op),
     .ram_ext_op     (id_ram_ext_op),
