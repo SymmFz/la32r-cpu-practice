@@ -21,23 +21,25 @@ module CU (
     output wire         id_is_br_jump   // id 阶段是否是分支或跳转指令
 );
 
-assign id_is_br_jump = din[15];
-wire inst_is_b_bl = din[15:12] == 4'b1010;           // I26 型指令（b or bl）  
-wire inst_is_jirl = din[15:12] == 4'b1001;           // jirl 指令
-wire inst_is_jump   = inst_is_b_bl | inst_is_jirl;   // 无条件跳转指令
-wire inst_is_branch = id_is_br_jump & !inst_is_jump; // 有条件跳转指令
+wire inst_is_br_jump = din[15];                                 // 是否是分支或跳转指令
+wire inst_is_b_bl    = din[15:12] == 4'b1010;                   // I26 型指令（b or bl）  
+wire inst_is_jirl    = din[15:12] == 4'b1001;                   // jirl 指令
+wire inst_is_jump    = inst_is_b_bl | inst_is_jirl;             // 无条件跳转指令
+wire inst_is_branch  = inst_is_br_jump & !inst_is_jump;         // 有条件跳转指令
+
+assign id_is_br_jump = inst_is_br_jump;
 
 always @(*) begin
-    if (id_is_br_jump && inst_is_jirl)
+    if (inst_is_br_jump && inst_is_jirl)
         npc_op = `NPC_JIRL_JUMP;     // jirl 指令的跳转目标地址
-    else if (id_is_br_jump)
+    else if (inst_is_br_jump)
         npc_op = `NPC_JUMP;          // 其他分支、跳转指令的跳转目标地址
     else 
         npc_op = `NPC_PC4;           // 顺序执行的下一条指令地址
 end
 
 always @(*) begin
-    if (id_is_br_jump) begin
+    if (inst_is_br_jump) begin
         ext_op = inst_is_b_bl ? `EXT_I26 : `EXT_2RI16; // 选择分支、跳转指令的立即数扩展方式
     end
     else begin
@@ -137,7 +139,7 @@ always @(*) begin
 end
 
 always @(*) begin
-    if (id_is_br_jump) begin
+    if (inst_is_br_jump) begin
         case (din[15:11])
             `FR5_BL:   rf_we = 1'b1;       // bl 指令写回寄存器堆
             `FR5_JIRL: rf_we = 1'b1;       // jirl 指令写回寄存器堆
@@ -174,7 +176,7 @@ end
 
 // assign r2_sel = XXX ? `R2_RK : `R2_RD;
 // assign wr_sel = XXX ? `WR_Rr1: `WR_RD;
-assign r2_sel = (din[15:13] == 3'b010 && din[9]) || id_is_br_jump ? `R2_RD : `R2_RK;     // 选择rk为源寄存器2，（store 或分支跳转指令）
+assign r2_sel = (din[15:13] == 3'b010 && din[9]) || inst_is_br_jump ? `R2_RD : `R2_RK;     // 选择rk为源寄存器2，（store 或分支跳转指令）
 assign wr_sel = (din[15:11] == `FR5_BL) ? `WR_Rr1 : `WR_RD;     // 选择rd或r1为目的寄存器
 
 always @(*) begin
@@ -196,7 +198,7 @@ always @(*) begin
 end
 
 always @(*) begin
-    if (id_is_br_jump && !inst_is_b_bl) begin
+    if (inst_is_br_jump && !inst_is_b_bl) begin
         rR2_re = 1'b1;
     end
     else begin
